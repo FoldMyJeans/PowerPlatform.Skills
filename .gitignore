@@ -1,0 +1,19 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vs/
+.vscode/
+*.suo
+*.user
+
+# Office temp lock files
+~$*
+
+# Local-only working files (keep on disk, never publish)
+# NOTE: CLAUDE.md is deliberately NOT ignored in this repo. It is part of the
+# product: the operating contract for any AI assistant connected to this repo.
+00_PROJECT_SETUP.md
+NEW_PROJECT_RUNBOOK.md

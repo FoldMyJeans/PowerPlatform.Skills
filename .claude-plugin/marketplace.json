@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "powerplatform-skills",
+  "description": "Power Platform build skills as code. Canvas Power Apps on SharePoint plus Power Automate flows, standard Microsoft 365, no Dataverse.",
+  "owner": {
+    "name": "FoldMyJeans",
+    "url": "https://github.com/FoldMyJeans"
+  },
+  "plugins": [
+    {
+      "name": "powerplatform-skills",
+      "description": "Seven skills that auto trigger on canvas Power Apps and Power Automate work: playbook, source workflow, list design, architecture and UI, Power Fx, approvals and flows, troubleshooting.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
