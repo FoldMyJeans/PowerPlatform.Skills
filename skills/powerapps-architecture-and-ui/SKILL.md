@@ -27,10 +27,10 @@ Use this when structuring the app or building UI. For the raw formula rules use
 ## Workflow
 
 1. The shell is one screen with containers as views, driven by a view state variable. Start
-   from `references/05_APP_ARCHITECTURE.md` for the container tree, App.OnStart numbered
+   from `references/app-architecture.md` for the container tree, App.OnStart numbered
    sections, deep links, OnVisible sync, theme, and naming conventions.
 2. For any interactive element, start from a proven pattern in
-   `references/07_UI_PATTERNS.md`, do not invent one. Each pattern ships with its formulas.
+   `references/ui-patterns.md`, do not invent one. Each pattern ships with its formulas.
 3. Deliver complete formulas labeled with control and property, and state where every new
    variable is set.
 
@@ -45,9 +45,9 @@ Use this when structuring the app or building UI. For the raw formula rules use
 
 ## References in this skill
 
-- `references/05_APP_ARCHITECTURE.md`: why one screen, the container tree, view state,
+- `references/app-architecture.md`: why one screen, the container tree, view state,
   App.OnStart sections, deep links, OnVisible as the data sync point, theme, naming, and on
   screen copy rules.
-- `references/07_UI_PATTERNS.md`: the pattern library with formulas, stepper, gates, shared
+- `references/ui-patterns.md`: the pattern library with formulas, stepper, gates, shared
   panels, concurrency safe moves, debounce and auto grey, approval gallery, dashboards,
   guided intake, friction matched confirms, and the demo data toggle.

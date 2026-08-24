@@ -25,7 +25,7 @@ exact specs) use `powerapps-build-playbook`. For approval and permission data sh
 
 ## Workflow
 
-1. Start from the standard four list shape in `references/04_SHAREPOINT_DATA.md`: the main
+1. Start from the standard four list shape in `references/sharepoint-list-design.md`: the main
    record list, the file index list, the people and roles list, and the approvals list.
 2. Follow the naming rules exactly. They prevent whole classes of bugs.
 3. Pick column types with the Power Fx behavior table in the reference. What SharePoint
@@ -46,5 +46,5 @@ exact specs) use `powerapps-build-playbook`. For approval and permission data sh
 
 ## References in this skill
 
-- `references/04_SHAREPOINT_DATA.md`: the four list shape, naming rules, column types in
+- `references/sharepoint-list-design.md`: the four list shape, naming rules, column types in
   Power Fx, each list in detail, SCHEMA_AS_BUILT.md, delegation reality, and build specs.

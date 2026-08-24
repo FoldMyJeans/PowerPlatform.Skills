@@ -1,4 +1,4 @@
-# 02: Environment setup. Tools, authentication, and the repo layout
+# Environment setup. Tools, authentication, and the repo layout
 
 One time setup for a Windows machine. After this, the daily loop is one command.
 
@@ -50,7 +50,7 @@ Create a brand new connection instead, then repoint the connection reference at 
 ## The pac commands you will actually use
 
 ```powershell
-# Canvas app, direct (before the one way door, see 03_SOURCE_WORKFLOW.md)
+# Canvas app, direct (before the one way door, see references/source-workflow.md)
 pac canvas list
 pac canvas download --name "<App Display Name>" --file-name app.msapp --overwrite
 pac canvas unpack --msapp app.msapp --sources src --layout SourceCode
@@ -93,13 +93,13 @@ Every app gets its own private GitHub repo. The layout that worked:
     app/
       app.ps1                     pull helper (download live app and unpack)
       src/                        canvas source: Src/App.pa.yaml, Src/scr_<X>.pa.yaml
-      STUDIO_TODO.md              the manual steps log (see 10_MANUAL_STEPS.md in the `powerapps-build-playbook` skill)
+      STUDIO_TODO.md              the manual steps log (see the `powerapps-build-playbook` skill)
     flows/
       <SolutionName>/             unpacked solution: Other/, Workflows/, CanvasApps/
   source_files/                   confidential originals. GITIGNORED, never pushed
 ```
 
-The knowledgebase folder is what you upload to an AI assistant's project knowledge. Keep one topic per file, numbered. See 12_WORKING_WITH_AI.md in the `powerapps-build-playbook` skill.
+The knowledgebase folder is what you upload to an AI assistant's project knowledge. Keep one topic per file, numbered. See the `powerapps-build-playbook` skill.
 
 ## What gets gitignored
 
@@ -129,11 +129,11 @@ powerapps/flows/*_build.zip
 powerapps/flows/*/CanvasApps/*.msapp
 ```
 
-Two rules behind that list. First, binary `.msapp` files are build artifacts, the unpacked YAML is the source, so the binaries stay out (they add hundreds of KB per commit and diff as "binary file changed"). Second, anything confidential (original business documents, real logos) never enters git at all. The repo is written redacted from the start: company name replaced with an alias, people replaced with role titles. See 12_WORKING_WITH_AI.md in the `powerapps-build-playbook` skill for the redaction convention.
+Two rules behind that list. First, binary `.msapp` files are build artifacts, the unpacked YAML is the source, so the binaries stay out (they add hundreds of KB per commit and diff as "binary file changed"). Second, anything confidential (original business documents, real logos) never enters git at all. The repo is written redacted from the start: company name replaced with an alias, people replaced with role titles. See the `powerapps-build-playbook` skill for the redaction convention.
 
 ## The pull request workflow
 
-Every change goes on its own branch and lands through a pull request. Nothing is committed straight to `main`. Protect `main` once the app is live so this is enforced, not just a habit (see 03_SOURCE_WORKFLOW.md for how this maps to the two eras).
+Every change goes on its own branch and lands through a pull request. Nothing is committed straight to `main`. Protect `main` once the app is live so this is enforced, not just a habit (see references/source-workflow.md for how this maps to the two eras).
 
 The loop is the same for docs and for source:
 
@@ -154,4 +154,4 @@ For a canvas app edited in Studio, the export step is the same three pac command
 
 - Protect `main` once the app is live. Require a pull request (zero approvals is fine when you work alone), block force pushes. Every change lands as one squash merged PR, so main reads one entry per finished piece of work.
 - Commit messages describe the change in app terms ("Add validation to client name field"), because the YAML diff under it can be thousands of lines of re-indentation.
-- The repo is the source of truth for history. The cloud is the source of truth for the running app. Know which direction sync flows in your current era (03_SOURCE_WORKFLOW.md) and never run a pull that overwrites hand authored source without a `-Force` style guard.
+- The repo is the source of truth for history. The cloud is the source of truth for the running app. Know which direction sync flows in your current era (references/source-workflow.md) and never run a pull that overwrites hand authored source without a `-Force` style guard.

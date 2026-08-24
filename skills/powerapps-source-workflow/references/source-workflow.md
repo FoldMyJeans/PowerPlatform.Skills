@@ -1,4 +1,4 @@
-# 03: Canvas source workflow. pa.yaml, packing, and the one way door
+# Canvas source workflow. pa.yaml, packing, and the one way door
 
 How a canvas app becomes text you can edit, how it gets back into the cloud, and the single constraint that shapes the whole build order.
 
@@ -15,12 +15,6 @@ In practice the pack direction works, and works well, until the app contains a S
 
 The moment either exists anywhere in the app, `pac canvas pack` fails for the whole app. Not for that control, for everything. No packaging format dodges it (bare msapp or solution zip, the failure is in YAML to package validation, not the container). This was proven the hard way, twice.
 
-### Copy pasting a people picker combo: check SearchFields
-
-Once one `Classic/ComboBox` people picker is built and working, the fast way to add the same picker to another screen or container is copy and paste in Studio, then rename. This works, but paste does not always carry `SearchFields` correctly. A pasted combo can come out with `SearchFields: ["Claims"]` (the raw login string) instead of `SearchFields: ["DisplayName"]`.
-
-This fails silently. The combo still renders, still opens, still lets you pick a person from the dropdown. The only symptom is that typing a person's name to filter the list does not match anything, because it is searching the wrong field. Nothing in Studio flags it as an error. After any copy paste of a people picker, open Advanced on the pasted control and confirm `SearchFields` reads `["DisplayName"]`, not `["Claims"]`.
-
 ```
 Era 1 (before any Studio-only control):
   edit pa.yaml -> pac canvas pack -> import msapp -> test        REPEATABLE
@@ -32,10 +26,16 @@ Era 2 (after the first combo box or attachment form goes in):
 
 Practical consequences:
 
-1. Sequence the build. Do everything you possibly can in YAML first, in one continuous era. People pickers and attachment forms go in last, in Studio, as a documented manual batch (10_MANUAL_STEPS.md in the `powerapps-build-playbook` skill).
+1. Sequence the build. Do everything you possibly can in YAML first, in one continuous era. People pickers and attachment forms go in last, in Studio, as a documented manual batch (the `powerapps-build-playbook` skill).
 2. Put placeholders in the YAML where Studio only controls will go (a dashed box, a "people picker added in Studio" label) so the layout is reserved and the manual step is obvious.
 3. Once past the door, retire the pack verb from your helper script so nobody packs and imports a stale build over live work.
 4. After the door, the repo becomes a changelog. Two ways to keep it true: mirror each confirmed Studio change into the YAML by hand, and periodically run a full export and unpack that trues up everything at once.
+
+### Copy pasting a people picker combo: check SearchFields
+
+Once one `Classic/ComboBox` people picker is built and working, the fast way to add the same picker to another screen or container is copy and paste in Studio, then rename. This works, but paste does not always carry `SearchFields` correctly. A pasted combo can come out with `SearchFields: ["Claims"]` (the raw login string) instead of `SearchFields: ["DisplayName"]`.
+
+This fails silently. The combo still renders, still opens, still lets you pick a person from the dropdown. The only symptom is that typing a person's name to filter the list does not match anything, because it is searching the wrong field. Nothing in Studio flags it as an error. After any copy paste of a people picker, open Advanced on the pasted control and confirm `SearchFields` reads `["DisplayName"]`, not `["Claims"]`.
 
 ## The source tree
 
@@ -111,7 +111,7 @@ On first ever import the data connections must be added once inside Studio (add 
 
 After the one way door, Power Apps Studio is the only editor. Two working styles, use both:
 
-Style 1, paste driven (day to day changes). The developer (or the AI assistant, see 12_WORKING_WITH_AI.md in the `powerapps-build-playbook` skill) writes the exact Power Fx property values. A human pastes them into Studio, tests, and confirms. Only after confirmation does the same change get mirrored into the repo YAML by hand and committed. Order matters: paste first, confirm, then mirror. Nothing rejected ever lands in git.
+Style 1, paste driven (day to day changes). The developer (or the AI assistant, see the `powerapps-build-playbook` skill) writes the exact Power Fx property values. A human pastes them into Studio, tests, and confirms. Only after confirmation does the same change get mirrored into the repo YAML by hand and committed. Order matters: paste first, confirm, then mirror. Nothing rejected ever lands in git.
 
 Style 2, export driven (periodic true up). On a fresh branch, run the export and unpack helper: `pac solution export`, `pac solution unpack` into the repo, `pac canvas unpack --layout SourceCode` on the msapp inside it, then commit and open a pull request. The helper cuts the branch and opens the PR for you instead of committing to `main`. This captures accumulated Studio work in one PR and corrects any drift from hand mirroring.
 
@@ -171,7 +171,7 @@ Solution aware flows have no "Run only users" panel, so do not go looking for on
 2. Run App.OnStart once. Without it every `var` is blank and the theme renders as black boxes.
 3. Formulas and errors panel: zero red.
 4. Click through the changed feature against real SharePoint data.
-5. If a flow signature changed, remove and re-add the flow in the Power Automate pane (see 13_TROUBLESHOOTING.md in the `powerapps-troubleshooting` skill, "received 9, expected 7-8").
+5. If a flow signature changed, remove and re-add the flow in the Power Automate pane (see the `powerapps-troubleshooting` skill, "received 9, expected 7-8").
 6. Every flow in the expected state, on or off, and connection references pointing at the right connections.
 
 ## What belongs in git

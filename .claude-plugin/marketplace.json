@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "powerplatform-skills",
-      "description": "Seven skills that auto trigger on canvas Power Apps and Power Automate work: playbook, source workflow, list design, architecture and UI, Power Fx, approvals and flows, troubleshooting.",
+      "description": "Skills that auto trigger on canvas Power Apps and Power Automate work: build playbook, canvas source workflow, SharePoint list design, app architecture and UI, Power Fx rules, approvals and flows, troubleshooting.",
       "source": "./",
       "category": "productivity"
     }

@@ -1,7 +1,7 @@
 {
   "name": "powerplatform-skills",
-  "version": "2.2.1",
-  "description": "Build Power Apps canvas apps on SharePoint and Power Automate as code. Seven focused skills for the build playbook, canvas source workflow, SharePoint list design, app architecture and UI, Power Fx rules, approvals and flows, and troubleshooting. Standard Microsoft 365 licensing, no Dataverse.",
+  "version": "3.0.0",
+  "description": "Build Power Apps canvas apps on SharePoint and Power Automate as code. Focused skills for the build playbook, canvas source workflow, SharePoint list design, app architecture and UI, Power Fx rules, approvals and flows, and troubleshooting. Standard Microsoft 365 licensing, no Dataverse, no premium connectors.",
   "author": {
     "name": "FoldMyJeans",
     "url": "https://github.com/FoldMyJeans"

@@ -1,4 +1,4 @@
-# 12: Working with an AI assistant. Turning these docs into a build companion
+# Working with an AI assistant. Turning these docs into a build companion
 
 These docs exist so an AI assistant with them in context can do the code side of a Power Platform build: the YAML, the Power Fx, the flow JSON, the data model, the docs. This page is how to wire that up and how to run the collaboration so it actually works.
 
@@ -79,7 +79,7 @@ The assistant cannot click. Keep the boundary explicit in every plan:
 
 | The AI does | The human does |
 |---|---|
-| Design the data model, write the column specs | Build the site, lists, columns, permissions (10_MANUAL_STEPS.md) |
+| Design the data model, write the column specs | Build the site, lists, columns, permissions (references/manual-steps.md) |
 | Write and edit pa.yaml source (era 1) | Pack or import, or both if a coding agent runs pac |
 | Write exact paste ready Power Fx (era 2) | Paste into Studio, test, confirm |
 | Write flow JSON logic | Create flow skeletons, export, import, add flows to the app |
@@ -91,7 +91,7 @@ The assistant cannot click. Keep the boundary explicit in every plan:
 
 - One container, one flow, or one fix per turn. Real apps get built in hundreds of small confirmed turns, not five big drops.
 - Feedback is what you see: the red error text, a screenshot, "the button stays grey". The errors panel message is gold, paste it verbatim.
-- Paste first, confirm, then mirror to git. Never commit unconfirmed changes (10_MANUAL_STEPS.md).
+- Paste first, confirm, then mirror to git. Never commit unconfirmed changes (references/manual-steps.md).
 - When the assistant asks for the current Choice values or the real column names, that is the process working. Paste from SharePoint settings, do not answer from memory.
 - Start each work session by stating where things stand ("we are past the one way door", "the folder flow is wired, notifications are not"). Or better, keep STUDIO_TODO.md current and point at it.
 
@@ -99,7 +99,7 @@ The assistant cannot click. Keep the boundary explicit in every plan:
 
 App repos and doc repos get shared. Write them redacted from the first commit:
 
-- The real company name never appears. Use an alias ("ABC Company" or similar) everywhere, including diagrams and sample data.
+- The real company name never appears. Pick one fictional name and use it everywhere, including diagrams and sample data.
 - People appear as role titles (the COO, the finance lead, a sales rep), never as names.
 - Real tenant URLs, environment URLs, list GUIDs, and connection reference names stay out of committed docs. Use `https://<tenant>.sharepoint.com/sites/<Site>` shapes. The exception is functional files that cannot work without real values (flow JSON in a private app repo). Know which repos are private enough for that and keep genuinely secret material out via .gitignore regardless.
 - Sample data uses fictional customers (Northwind, Contoso, Acme).

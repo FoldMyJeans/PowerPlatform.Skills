@@ -26,11 +26,11 @@ For creating flow skeletons and importing solutions (human clicks) use
 
 ## Workflow
 
-1. Approvals follow the engine in `references/08_APPROVALS_PERMISSIONS.md`: the data shape,
+1. Approvals follow the engine in `references/approvals-and-permissions.md`: the data shape,
    assigning, deciding, the return loop and cycles, and notifying.
 2. Permissions are two layers. Layer 1 is SharePoint permissions, the real security. Layer 2
    is app gates, UX only. Never present a hidden button as security.
-3. New flows use the skeleton first method in `references/09_FLOWS.md`: the human creates a
+3. New flows use the skeleton first method in `references/flows.md`: the human creates a
    skeleton in the maker portal, exports it, and the JSON is then authored in the repo. Start
    every flow from one of the four proven shapes, do not invent a fifth.
 4. Changing a flow's inputs means every app using it must remove and re-add it in the Power
@@ -48,8 +48,8 @@ For creating flow skeletons and importing solutions (human clicks) use
 
 ## References in this skill
 
-- `references/08_APPROVALS_PERMISSIONS.md`: the approval engine end to end, and the two
+- `references/approvals-and-permissions.md`: the approval engine end to end, and the two
   layer access model including per record permissions, the drop box flow, locking, and
   debugging permissions.
-- `references/09_FLOWS.md`: trigger and action anatomy, the four proven flow shapes, the
+- `references/flows.md`: trigger and action anatomy, the four proven flow shapes, the
   skeleton first method, solution registration, app wiring, and the activation time traps.

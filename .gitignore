@@ -17,3 +17,6 @@ desktop.ini
 # product: the operating contract for any AI assistant connected to this repo.
 00_PROJECT_SETUP.md
 NEW_PROJECT_RUNBOOK.md
+
+# Local only banned term list for tools\check.ps1, never published
+*.local.txt
