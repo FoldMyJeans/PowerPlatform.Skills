@@ -29,11 +29,14 @@ ForAll(
         Assigned_To: LookUp(Role_Config, Role_Name.Value = role.r).Assigned_To,
         Decision: { Value: "Pending" },
         Assigned_On: Now(),
+        Step_Number: { Value: "7" },
         Review_Cycle: varDeal.Review_Cycle,
         Notification_Sent: false
     })
 )
 ```
+
+`Step_Number` and `Review_Cycle` are both written here and never left blank. Every query over these rows filters on both, so a row missing either is invisible to the gates that are supposed to count it, and nothing errors. The Send button simply stays grey forever.
 
 Why a button and not the step transition: this was learned as a hard rule in production. The step 6 to 7 Next button only patches the record. The Save Approvers button on step 7 creates the review rows. Keeping row creation out of transitions means a transition can never half fail into duplicate reviewer rows, and approver assignment can be redone without moving the record.
 

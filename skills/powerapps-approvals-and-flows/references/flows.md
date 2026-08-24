@@ -134,7 +134,7 @@ IfError(
 
 One flow handles both a real file and a URL registration, branching on whether the link input is empty:
 
-Inputs: ClientName, Reference, Subfolder (or FolderCategory), StepNumber, FileName, File (object), UploadedByEmail, RecordID (number), LinkUrl (text, empty means file). All of them required, and the File sits at its schema position, so it is the sixth argument and not the last.
+Inputs: ClientName, Reference, FolderCategory, StepNumber, FileName, File (object), UploadedByEmail, RecordID (number), LinkUrl (text, empty means file). All of them required, and the File sits at its schema position, so it is the sixth argument and not the last.
 
 The link path still has to pass a file object, and the value matters. An empty string on a `format: byte` field serialises to `null`, which a required schema rejects at the trigger with `TriggerInputSchemaMismatch: Expected String but got Null`. Pass a token instead, `{ name: "Link.url", contentBytes: "IA==" }`, which is base64 for a single space. The link branch never writes it, so the value is inert, it just has to be a real base64 string.
 
