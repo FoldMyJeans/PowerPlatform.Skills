@@ -1,4 +1,4 @@
-# 07: UI patterns. The proven building blocks with their formulas
+# UI patterns. The proven building blocks with their formulas
 
 Every pattern here shipped in production. Copy the shape, adapt the names, keep the why.
 
@@ -46,10 +46,10 @@ When a step needs something done first (create the folder, save the customer), s
 
 ```
 // gate panel (con_FolderGate)
-Visible: =<on the right steps> && !Coalesce(varDeal.Folder_Created, false)
+Visible: =<on the right steps> && !Coalesce(varDeal.Folders_Created, false)
 
 // real panel (con_Docs)
-Visible: =<on the right steps> && Coalesce(varDeal.Folder_Created, false)
+Visible: =<on the right steps> && Coalesce(varDeal.Folders_Created, false)
 ```
 
 This reads far better than a greyed out control nobody understands. The gate panel holds the one action that clears it (the Create folder button) and one sentence of why.
@@ -71,7 +71,7 @@ Items: =Switch(varView,
     "FULL_FLOW", Table({ r: "President" }, { r: "COO" }, { r: "CFO" },
                        { r: "VP of Sales" }, { r: "Legal" }),
     "LIGHT_C",   Table({ r: "COO" }, { r: "CFO" }, { r: "VP of Sales" }),
-    Table({ r: "" }))        // typed default, see 06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 11
+    Table({ r: "" }))        // typed default, see the `powerapps-powerfx` skill Rule 11
 ```
 
 The shared panels that earned their keep: documents (upload plus link register plus gallery), approvals (per approver rows plus actions), the folder gate, a templates shortcut button. Hide the documents panel on the approval step (the approval panel takes the slot) and on the final step (no uploads after approval).
@@ -131,7 +131,7 @@ DisplayMode: =If(
 
 How the auto grey works: the flow (not the app) patches `Notification_Sent: true` per row it emails. The timer's `Refresh` pulls those flags, the unsent count hits zero, the button greys permanently for the cycle. Re-enabling is data driven too: change the meeting date or the assigned person and the count formula (which compares the stored notified date against the picker) goes positive again. A dirty flag (`varStep5A_FormDirty`, set by the pickers' OnChange, cleared by Save) blocks sending unsaved edits.
 
-The failure path matters: the IfError catch on Save must reset `varSendNotification_Ready` to true, or a failed save leaves the Send button dead forever (06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 7).
+The failure path matters: the IfError catch on Save must reset `varSendNotification_Ready` to true, or a failed save leaves the Send button dead forever (the `powerapps-powerfx` skill Rule 7).
 
 ## Pattern: per row approval gallery with authority
 
@@ -148,11 +148,11 @@ DisplayMode: =If(
 
 // row Approve OnSelect
 Patch(Approvals, ThisItem, { Decision: { Value: "Approved" },
-    Comment: txt_RowComment.Text, Decided_Date: Now() });
+    Comment: txt_RowComment.Text, Decided_On: Now() });
 // then recompute the deal level status from the rows and re-fetch varDeal
 ```
 
-Notes. A row control (`txt_RowComment`) is referenced by its sibling button inside the same gallery template, that works. `varIsSuperApprover` is computed once in OnStart from the roles list (President or COO) and grants any-row authority plus an "Approve all remaining" button. Friction matches the stakes: Approve is one click with an Undo appearing after, Return asks for a reason and one plain confirm sentence. Full approval mechanics in 08_APPROVALS_PERMISSIONS.md in the `powerapps-approvals-and-flows` skill.
+Notes. A row control (`txt_RowComment`) is referenced by its sibling button inside the same gallery template, that works. `varIsSuperApprover` is computed once in OnStart from the roles list (President or COO) and grants any-row authority plus an "Approve all remaining" button. Friction matches the stakes: Approve is one click with an Undo appearing after, Return asks for a reason and one plain confirm sentence. Full approval mechanics in the `powerapps-approvals-and-flows` skill.
 
 ## Pattern: actionable dashboards
 
@@ -184,4 +184,4 @@ Two doors into the same routes. A guided questionnaire (two or three plain langu
 
 ## Pattern: demo data toggle (for mockups and demos)
 
-A global switch: demo mode fills every screen with one coherent fictional record so a stakeholder can follow a single story end to end, clean mode shows everything empty and interactive. Cheap to build, transforms review meetings. Pairs with the mockup method in 11_BUILD_PLAYBOOK.md in the `powerapps-build-playbook` skill.
+A global switch: demo mode fills every screen with one coherent fictional record so a stakeholder can follow a single story end to end, clean mode shows everything empty and interactive. Cheap to build, transforms review meetings. Pairs with the mockup method in the `powerapps-build-playbook` skill.

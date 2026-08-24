@@ -1,4 +1,4 @@
-# 09: Power Automate flows. Anatomy, proven shapes, and the skeleton first method
+# Power Automate flows. Anatomy, proven shapes, and the skeleton first method
 
 Flows do the three jobs the canvas app cannot: create SharePoint folders, write files, and send email. This doc covers how flow JSON is structured, the flow designs that shipped, and the low error way to author new ones.
 
@@ -6,9 +6,9 @@ Flows do the three jobs the canvas app cannot: create SharePoint folders, write 
 
 ## Ground rules
 
-- Trigger: PowerApps (V2) for every app called flow, in the same environment as the app. Two automated flows are an exception, see the permission sync shape in 08_APPROVALS_PERMISSIONS.md, they trigger on a SharePoint list's created or modified event, not from the app.
-- Connections: `shared_sharepointonline` (SharePoint) and `shared_office365` (Outlook, Send an email V2), running as invoker by default, so files and emails carry the identity of the person who clicked. The deliberate exception is the drop box upload flow (08_APPROVALS_PERMISSIONS.md), whose connection is embedded on purpose so it runs as the maker instead of the invoker, letting someone submit into a folder they cannot read.
-- One writer per column (06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 6). Flow written columns (`Folders_Created`, `Root_Folder_Url`, `Notification_Sent` flags) are read by the app, never written by it.
+- Trigger: PowerApps (V2) for every app called flow, in the same environment as the app. Two automated flows are an exception, see the permission sync shape in references/approvals-and-permissions.md, they trigger on a SharePoint list's created or modified event, not from the app.
+- Connections: `shared_sharepointonline` (SharePoint) and `shared_office365` (Outlook, Send an email V2), running as invoker by default, so files and emails carry the identity of the person who clicked. The deliberate exception is the drop box upload flow (references/approvals-and-permissions.md), whose connection is embedded on purpose so it runs as the maker instead of the invoker, letting someone submit into a folder they cannot read.
+- One writer per column (the `powerapps-powerfx` skill Rule 6). Flow written columns (`Folders_Created`, `Root_Folder_Url`, `Notification_Sent` flags) are read by the app, never written by it.
 - Idempotency flags so a re-run never duplicates (`Folders_Created: true` written back after folder creation).
 - Deep link every email: append `&dealId=<record id>` (and optionally `&view=<step>`) to the app play URL so the recipient lands on the exact record.
 - Prefer reusable flows. An early build shipped six upload flows and three notification flows, one per document type or event. The next build collapsed those into one parameterized upload flow and one notification flow. Fewer flows, fewer places to fix.
@@ -48,7 +48,7 @@ The tell, if you are already in this hole: open the flow run, expand the trigger
 
 Argument order follows the schema, not the required array. Required inputs take their position in `properties`, so a `file` sitting between `text_4` and `text_5` is the sixth argument to `.Run(...)`, not the last one. Making a previously optional input required therefore shifts every argument after it, and the app formulas must move with it.
 
-Change the inputs and every app using the flow must remove and re-add it in the Power Automate pane (06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 19).
+Change the inputs and every app using the flow must remove and re-add it in the Power Automate pane (the `powerapps-powerfx` skill Rule 19).
 
 ## Action anatomy
 
@@ -123,7 +123,7 @@ Hard learned notes:
 IfError(
     With({ result: CreateDealFolder.Run(varDeal.Customer, varDeal.Deal_Reference,
                                         varDeal.Route.Value, Text(varDeal.ID)) },
-        Patch(Deals, varDeal, { Folder_Created: true, Folder_Link: result.folderpath })
+        Patch(Deals, varDeal, { Folders_Created: true, Folder_Link: result.folderpath })
     );
     Set(varDeal, LookUp(Deals, ID = varDeal.ID));
     Notify("Deal folder created.", NotificationType.Success),
@@ -168,13 +168,13 @@ UploadDocument.Run(..., Trim(txt_LinkName.Text),
 Refresh(Deal_Files); ResetForm(frm_Docs_Upload); Reset(txt_LinkName); Reset(txt_LinkUrl)
 ```
 
-`ResetForm`, not `Reset`, on the upload form (06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 14).
+`ResetForm`, not `Reset`, on the upload form (the `powerapps-powerfx` skill Rule 14).
 
 ## Proven flow shape 3: notify people
 
 Two variants.
 
-Simple recipients variant: the app computes a semicolon joined, deduplicated, lowercased recipient string (07_UI_PATTERNS.md in the `powerapps-architecture-and-ui` skill and 08_APPROVALS_PERMISSIONS.md show the Concat and Distinct formulas) and the flow is just Send an email V2 to that string with subject, body, and the deep link. Inputs: RecordID, Reference, Customer, Recipients, AppLink. Start here.
+Simple recipients variant: the app computes a semicolon joined, deduplicated, lowercased recipient string (the `powerapps-architecture-and-ui` skill and references/approvals-and-permissions.md show the Concat and Distinct formulas) and the flow is just Send an email V2 to that string with subject, body, and the deep link. Inputs: RecordID, Reference, Customer, Recipients, AppLink. Start here.
 
 Iterating variant (per row emails plus per row sent flags): the flow takes only RecordID and AppLink, does `GetItem` on the record and `GetItems` on the approval rows (`DealId eq {id} and Step_Number eq '7'`), then `Apply_to_each` row:
 
@@ -182,13 +182,13 @@ Iterating variant (per row emails plus per row sent flags): the flow takes only 
 - Send the email, addressing the person by their role with the underscores cleaned up, including the two deep links (app plus folder).
 - `PatchItem` the row: `Notification_Sent: true`, `Notification_Sent_On: utcNow()`, plus the context that suppression compares against (the notified meeting date).
 
-The suppression contract is shared with the app: the Send button's DisplayMode counts unsent rows with the same conditions, so the button greys exactly when the flow has nothing left to send, and re-arms when the date or person changes (07_UI_PATTERNS.md in the `powerapps-architecture-and-ui` skill). PM style single recipients on the record use the same idea with flags on the record: `PM_Notification_Sent`, `PM_Notification_Meeting_Date`, `Last_Notified_PM_Email`, re-send when any differ.
+The suppression contract is shared with the app: the Send button's DisplayMode counts unsent rows with the same conditions, so the button greys exactly when the flow has nothing left to send, and re-arms when the date or person changes (the `powerapps-architecture-and-ui` skill). PM style single recipients on the record use the same idea with flags on the record: `PM_Notification_Sent`, `PM_Notification_Meeting_Date`, `Last_Notified_PM_Email`, re-send when any differ.
 
 Email body notes: a short delay (5 seconds) before the send lets SharePoint settle after row creation. Build folder links by encoding the path (simple replace of spaces with %20 breaks on `&` and apostrophes, prefer proper encoding or clean the names at save time).
 
 Set the importance explicitly. Send an email V2 sends at low importance when the parameter is absent, so recipients get a "Low importance" banner on an approval notice. Add `"emailMessage/Importance": "Normal"` to the action parameters.
 
-Printing a date from a SharePoint date column: do not run it through `convertTimeZone`. See 04_SHAREPOINT_DATA.md in the `powerapps-sharepoint-data` skill for why that prints the day before.
+Printing a date from a SharePoint date column: do not run it through `convertTimeZone`. See the `powerapps-sharepoint-data` skill for why that prints the day before.
 
 ## Proven flow shape 4: scheduled sweep
 
@@ -238,7 +238,7 @@ This works and was done in production, but the skeleton first method above produ
 
 ## Wiring the app to a flow
 
-A `.Run()` only resolves after the flow is added to the app in Studio (the Power Automate pane). A YAML reference alone does not connect it, so the real `.Run()` wiring is part of the manual handoff (10_MANUAL_STEPS.md in the `powerapps-build-playbook` skill). The proven interim: have the button patch the flag directly (`Patch(Deals, varDeal, { Folder_Created: true })`) so the gates and downstream UI can be tested before the flow exists, then swap in the real call in Studio. And after any flow signature change: remove and re-add the flow in the pane, or you get the argument count cache error.
+A `.Run()` only resolves after the flow is added to the app in Studio (the Power Automate pane). A YAML reference alone does not connect it, so the real `.Run()` wiring is part of the manual handoff (the `powerapps-build-playbook` skill). The proven interim: have the button patch the flag directly (`Patch(Deals, varDeal, { Folders_Created: true })`) so the gates and downstream UI can be tested before the flow exists, then swap in the real call in Studio. And after any flow signature change: remove and re-add the flow in the pane, or you get the argument count cache error.
 
 ## Two connector and expression traps that only show up at activation or runtime
 

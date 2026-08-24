@@ -1,4 +1,4 @@
-# 11: Build playbook. A new app from zero, end to end
+# Build playbook. A new app from zero, end to end
 
 The full method, in the order that worked. It front loads the thinking (process, mockup, data model) because canvas apps are wide and interdependent, and it sequences the build around the one way door. Expect the phases to overlap a little in practice, but never skip one.
 
@@ -26,13 +26,13 @@ The goal stated plainly: the prototype hands an engineer 100 percent of the busi
 
 The app reads the lists on start, so the names must be real before the code can use them.
 
-1. Design the lists on paper using the standard four list shape (04_SHAREPOINT_DATA.md in the `powerapps-sharepoint-data` skill).
-2. A human builds the site, the lists, the library, the templates library, seeds the roles list, sets permissions (the exact click list is 10_MANUAL_STEPS.md).
+1. Design the lists on paper using the standard four list shape (the `powerapps-sharepoint-data` skill).
+2. A human builds the site, the lists, the library, the templates library, seeds the roles list, sets permissions (the exact click list is references/manual-steps.md).
 3. Confirm the real internal column names and Choice values back into SCHEMA_AS_BUILT.md. That doc is now the contract. Phase 1 is done when it is filled in.
 
 ## Phase 2: app skeleton
 
-Deliver `App.pa.yaml` (theme, view state, OnStart sections per 05_APP_ARCHITECTURE.md in the `powerapps-architecture-and-ui` skill) plus the one screen with the master container, the top bar, and empty child containers. Pack, import, add the data sources once, run OnStart, confirm it opens clean. Nothing works yet. This is the frame.
+Deliver `App.pa.yaml` (theme, view state, OnStart sections per the `powerapps-architecture-and-ui` skill) plus the one screen with the master container, the top bar, and empty child containers. Pack, import, add the data sources once, run OnStart, confirm it opens clean. Nothing works yet. This is the frame.
 
 ## Phase 3: build container by container, in a loop with a human
 
@@ -52,15 +52,15 @@ Two decisions to lock with the human before the first container, because both ar
 
 ## Phase 3.5: sequence the one way door
 
-While still in era 1 (everything packs), land every last thing that can be expressed in YAML: all containers, all formulas, all gating, placeholder labels where the Studio only controls will go, and buttons with interim OnSelects (patch the flag directly) where flows will later be wired. Then, in one Studio session, the human builds the era 2 items from STUDIO_TODO.md: people pickers, the attachment form, flow wiring. From that session on, the workflow is Studio plus mirror (03_SOURCE_WORKFLOW.md in the `powerapps-source-workflow` skill). Never pack again.
+While still in era 1 (everything packs), land every last thing that can be expressed in YAML: all containers, all formulas, all gating, placeholder labels where the Studio only controls will go, and buttons with interim OnSelects (patch the flag directly) where flows will later be wired. Then, in one Studio session, the human builds the era 2 items from STUDIO_TODO.md: people pickers, the attachment form, flow wiring. From that session on, the workflow is Studio plus mirror (the `powerapps-source-workflow` skill). Never pack again.
 
 ## Phase 4: flows last
 
-The app runs first with interim patches, so flows are not on the critical path. Then per flow: skeleton in the designer, export, fill the JSON, import, add to the app, wire the real `.Run()`, test a run (09_FLOWS.md in the `powerapps-approvals-and-flows` skill). Folder creation first (the folder gate depends on it), uploads second, notifications last.
+The app runs first with interim patches, so flows are not on the critical path. Then per flow: skeleton in the designer, export, fill the JSON, import, add to the app, wire the real `.Run()`, test a run (the `powerapps-approvals-and-flows` skill). Folder creation first (the folder gate depends on it), uploads second, notifications last.
 
 ## Phase 5: harden
 
-- Sweep every save button into the IfError pattern, every flow call wrapped, every patch re-fetched (06_POWERFX_RULES.md in the `powerapps-powerfx` skill).
+- Sweep every save button into the IfError pattern, every flow call wrapped, every patch re-fetched (the `powerapps-powerfx` skill).
 - Walk the permission model as three different test users: a sales rep who is on one deal, an approver, an admin. Check every gate and every gallery scope.
 - Test the return loop twice in a row (cycle 1 reject, cycle 2 reject) and confirm no stale approvals leak.
 - Test deep links from real emails.

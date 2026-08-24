@@ -1,4 +1,4 @@
-# 06: Power Fx rules and gotchas. The non negotiable physics
+# Power Fx rules and gotchas. The non negotiable physics
 
 Every one of these cost real debugging time on a real build. They are written as wrong versus right so they can be applied mechanically. When code violates one of these, fix it and cite the rule.
 
@@ -71,7 +71,7 @@ Patch(Deals, LookUp(Deals, ID = varDeal.ID),
 Set(varStep3_SubStep, "B");
 ```
 
-If two users must agree on it, it lives in a column. Mirrors get rehydrated in OnVisible (05_APP_ARCHITECTURE.md in the `powerapps-architecture-and-ui` skill).
+If two users must agree on it, it lives in a column. Mirrors get rehydrated in OnVisible (the `powerapps-architecture-and-ui` skill).
 
 ### Rule 6: One writer per column
 
@@ -193,7 +193,7 @@ An HtmlViewer whose `HtmlText` references another control's property, which itse
 
 ### Rule 18: `.Run()` argument order follows the trigger's required array
 
-Inputs appear in the flow JSON as `text`, `text_1`, `text_2`, `number`, `file`. The app passes them positionally in the order of the trigger schema's `required` array, optional inputs (like a file) last. Full anatomy in 09_FLOWS.md in the `powerapps-approvals-and-flows` skill.
+Inputs appear in the flow JSON as `text`, `text_1`, `text_2`, `number`, `file`. The app passes them positionally in the order of the trigger schema's `required` array, optional inputs (like a file) last. Full anatomy in the `powerapps-approvals-and-flows` skill.
 
 ### Rule 19: "received 9, expected 7-8" is a cache, not your code
 
@@ -207,7 +207,7 @@ The cache holds the outputs too, not just the inputs, and that version is much h
 IfError(
     With({ result: CreateFolder.Run(varDeal.Customer, varDeal.Deal_Reference,
                                     varDeal.Route.Value, Text(varDeal.ID)) },
-        Patch(Deals, varDeal, { Folder_Created: true, Folder_Link: result.folderpath })
+        Patch(Deals, varDeal, { Folders_Created: true, Folder_Link: result.folderpath })
     );
     Set(varDeal, LookUp(Deals, ID = varDeal.ID));
     Notify("Folder created.", NotificationType.Success),
@@ -223,13 +223,15 @@ IfError(
 
 ```
 // WRONG: breaks on spaces and special characters
-Launch(".../Shared Documents/" & varDeal.Client_Name & ...)
+Launch(".../Shared Documents/" & varDeal.Customer & ...)
 
 // RIGHT
-Launch(".../Shared%20Documents/" & EncodeUrlComponent(varDeal.Client_Name) & ...)
+Launch(".../Shared%20Documents/" & EncodeUrlComponent(varDeal.Customer) & ...)
 ```
 
 Client names contain spaces, ampersands and apostrophes. Flow side string building that only replaces spaces with %20 will still break on `&` and `'`, so treat cleanup of those characters as part of saving the name.
+
+## Write conflicts
 
 ### Rule 22: Patch the record you just fetched, not the one you are holding
 

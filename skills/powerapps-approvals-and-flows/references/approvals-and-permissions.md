@@ -1,4 +1,4 @@
-# 08: Approvals and permissions. The engine and the two layer access model
+# Approvals and permissions. The engine and the two layer access model
 
 The approval engine and the access model are where governance actually lives. One proven design, with calibration options noted.
 
@@ -8,14 +8,14 @@ The approval engine and the access model are where governance actually lives. On
 
 ### The data shape
 
-One row per approver, per record, per review cycle, in the approvals list (04_SHAREPOINT_DATA.md in the `powerapps-sharepoint-data` skill). The record itself carries a cycle counter (`Review_Cycle`, starts at 1) and an overall status. That is the whole engine. Everything else is queries over it.
+One row per approver, per record, per review cycle, in the approvals list (the `powerapps-sharepoint-data` skill). The record itself carries a cycle counter (`Review_Cycle`, starts at 1) and an overall status. That is the whole engine. Everything else is queries over it.
 
 ### Assigning approvers
 
 Approvers come from the roles list, assigned by an explicit button, not as a side effect of a step move:
 
 ```
-// btn_Assign OnSelect (route aware, typed default per 06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 11)
+// btn_Assign OnSelect (route aware, typed default per the `powerapps-powerfx` skill Rule 11)
 ForAll(
     Switch(varView,
         "FULL_FLOW", Table({ r: "President" }, { r: "COO" }, { r: "CFO" },
@@ -28,7 +28,7 @@ ForAll(
         Approver_Role: { Value: role.r },
         Assigned_To: LookUp(Role_Config, Role_Name.Value = role.r).Assigned_To,
         Decision: { Value: "Pending" },
-        Assigned_Date: Now(),
+        Assigned_On: Now(),
         Review_Cycle: varDeal.Review_Cycle,
         Notification_Sent: false
     })
@@ -41,7 +41,7 @@ Conditional approvers are data rules: on the lightweight routes the CFO row is a
 
 ### Deciding
 
-Each approver acts on their own row (the per row gallery in 07_UI_PATTERNS.md in the `powerapps-architecture-and-ui` skill). Two decision actions only, Approve and Return (or Reject). The overall outcome flavor (approved, approved with conditions, approved as margin exception) is set once on the record by whoever finalizes, not per approver.
+Each approver acts on their own row (the per row gallery in the `powerapps-architecture-and-ui` skill). Two decision actions only, Approve and Return (or Reject). The overall outcome flavor (approved, approved with conditions, approved as margin exception) is set once on the record by whoever finalizes, not per approver.
 
 Parallel by default: all assigned approvers decide in any order, the record is approved when no non approved rows remain in the current cycle:
 
@@ -50,7 +50,7 @@ Set(varStep7_AllApproved,
     CountRows(Filter(Approvals,
         Deal.Id = varDeal.ID && Step_Number.Value = "7" &&
         Review_Cycle = varDeal.Review_Cycle &&
-        Review_Status.Value <> "Approved")) = 0);
+        Decision.Value <> "Approved")) = 0);
 ```
 
 Sequential gates where needed: a governance variant lets directors approve in parallel but enables the executive's Approve button only after all assigned directors approved (compare approved director count against assigned director count, so the gate adapts when an optional director was skipped).
@@ -67,7 +67,7 @@ A return is the record moving backward with history kept:
 
 Because every query filters on the current cycle, the new round starts clean while the full history of prior cycles stays for audit. A manual "reset cycle" button (senior roles only) covers the case where approvers were assigned wrongly before anyone decided.
 
-Two engineered details that look small and are not. Undo: after approving, an Undo button shows while the round is open, it flips the row back to Pending and clears `Reviewed_On` back to blank. Close: distinct from Return, a senior only action that permanently closes a dead record as cancelled with a reason. Returns mean fix and resubmit, Close means dead.
+Two engineered details that look small and are not. Undo: after approving, an Undo button shows while the round is open, it flips the row back to Pending and clears `Decided_On` back to blank. Close: distinct from Return, a senior only action that permanently closes a dead record as cancelled with a reason. Returns mean fix and resubmit, Close means dead.
 
 ### Notifying approvers
 
@@ -85,7 +85,7 @@ Set(varApRecipients,
         ) As p, p.Value, ";"));
 ```
 
-`Distinct` matters: one person holding two roles gets one email. The debounce and auto grey pattern (07_UI_PATTERNS.md in the `powerapps-architecture-and-ui` skill) wraps the Send button. The upgrade path when executives will not open any app: Microsoft Approvals cards in Teams, sent per approver by the flow, with the decision written back to the row. Design for it from the start by keeping one row per approver.
+`Distinct` matters: one person holding two roles gets one email. The debounce and auto grey pattern (the `powerapps-architecture-and-ui` skill) wraps the Send button. The upgrade path when executives will not open any app: Microsoft Approvals cards in Teams, sent per approver by the flow, with the decision written back to the row. Design for it from the start by keeping one row per approver.
 
 ## The two layer access model
 
@@ -142,7 +142,7 @@ Pick the grant level per list, not by habit. A list the app only reads for gatin
 
 ### Layer 1, confidential submission without read access: the drop box flow
 
-A different problem from record visibility: letting someone submit into a folder they must never be able to read back, not even their own submission (a sensitive report the submitter should hand off but not retain). The instant, app called upload flow (09_FLOWS.md shape 2) normally runs as the invoker, so the uploader needs Contribute on the target folder, which is exactly the access being withheld.
+A different problem from record visibility: letting someone submit into a folder they must never be able to read back, not even their own submission (a sensitive report the submitter should hand off but not retain). The instant, app called upload flow (references/flows.md shape 2) normally runs as the invoker, so the uploader needs Contribute on the target folder, which is exactly the access being withheld.
 
 The fix is a second, near identical upload flow whose SharePoint connection is embedded (bound to the flow owner) instead of the usual invoker connection. Same trigger shape, same inputs, same actions as the normal upload flow. The only difference is the connection reference's `runtimeSource`, `embedded` instead of `invoker`. The app calls this flow instead of the normal one whenever the target subfolder is the confidential one, same `.Run()` signature, so the app side branching is a single `If` on the subfolder value:
 
@@ -223,7 +223,7 @@ Pick the calibration per process, deliberately, and write it down.
 | "You don't have permission" on Save | Missing Contribute on the SharePoint list. Fix in SharePoint |
 | Edit stays disabled for a just assigned person | Gate recomputes on OnVisible. Navigate away and back |
 | Approve button disabled for an approver | Not their row, wrong cycle, or the record is locked |
-| Combo shows last cycle's approver | Missing cycle filter in DefaultSelectedItems (06_POWERFX_RULES.md in the `powerapps-powerfx` skill Rule 8) |
+| Combo shows last cycle's approver | Missing cycle filter in DefaultSelectedItems (the `powerapps-powerfx` skill Rule 8) |
 | Admin cannot edit a step | By design. Visibility, not authority |
 | A newly assigned person still cannot see the record, even hours later | The per record permission flow only runs on that record's own created or modified event. Open and save the record once to re-trigger it, or check the flow's run history for a failure |
 | A person removed from a record's team can still open it | The flow re-syncs grants on every edit, so a stale grant survives until the record is edited again after the removal. Not automatic on person column removal alone if nothing else changed the item |

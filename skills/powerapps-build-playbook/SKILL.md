@@ -28,35 +28,35 @@ for pa.yaml and packing, `powerapps-architecture-and-ui` for the shell and patte
 
 ## Workflow
 
-1. Orient with `references/01_PLATFORM_MAP.md`: the stack, why SharePoint and not Dataverse,
+1. Orient with `references/platform-map.md`: the stack, why SharePoint and not Dataverse,
    and the five bucket map of what is code versus what is manual clicks. Never promise in
    code what belongs to a clicks bucket.
-2. Run the phases in `references/11_BUILD_PLAYBOOK.md` in order: understand the process,
+2. Run the phases in `references/build-playbook.md` in order: understand the process,
    clickable mockup, SharePoint first, app skeleton, container by container with a human in
    the loop, sequence the one way door, flows last, then harden.
 3. The human does the clicks. Sites, lists, columns, permissions, connections, flow
    skeletons, imports, sharing, Studio only controls. Write them exact specs from
-   `references/10_MANUAL_STEPS.md` and track pending manual work in a STUDIO_TODO.md.
+   `references/manual-steps.md` and track pending manual work in a STUDIO_TODO.md.
 4. Code goes to the human first, gets confirmed working, and only then is mirrored into the
    repo and committed. Never commit unconfirmed changes.
 5. To set up the collaboration itself (instructions template, division of labor, running the
-   loop), use `references/12_WORKING_WITH_AI.md`.
+   loop), use `references/working-with-ai.md`.
 
 ## Hard rules
 
 - Sequence the one way door deliberately. Land everything expressible in YAML while still in
   era 1, then build the Studio only items in one session and never pack again.
-- Redact anything shareable. Alias the company name, role titles instead of people names,
+- Redact anything shareable. A fictional company name, role titles instead of people names,
   placeholder tenant URLs and GUIDs. Verify with a grep before committing.
 - Keep the docs honest. A gotcha earned on a real build gets added to the matching reference
   the same session. When reality contradicts a doc, fix the doc.
 
 ## References in this skill
 
-- `references/01_PLATFORM_MAP.md`: the stack, the five bucket code versus clicks map, and
-  the eight design principles.
-- `references/11_BUILD_PLAYBOOK.md`: the end to end phase sequence with time expectations.
-- `references/10_MANUAL_STEPS.md`: every click that can never be code, exact specs, the
+- `references/platform-map.md`: the stack, the five bucket code versus clicks map, and
+  the design principles.
+- `references/build-playbook.md`: the end to end phase sequence with time expectations.
+- `references/manual-steps.md`: every click that can never be code, exact specs, the
   STUDIO_TODO.md artifact, and the paste driven change loop.
-- `references/12_WORKING_WITH_AI.md`: wiring an AI assistant into the build, the custom
+- `references/working-with-ai.md`: wiring an AI assistant into the build, the custom
   instructions template, the division of labor, and the redaction convention.

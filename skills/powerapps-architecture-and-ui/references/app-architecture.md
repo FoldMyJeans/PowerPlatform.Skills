@@ -1,4 +1,4 @@
-# 05: App architecture. The single screen shell
+# App architecture. The single screen shell
 
 The apps built with this playbook are single screen applications. The app never navigates between Studio screens. It stays on one screen and swaps which containers are visible using variables. This doc is the shell: view state, OnStart, OnVisible, theme, and naming.
 
@@ -27,7 +27,7 @@ scr_Main  (the only screen)
    ├─ con_FolderGate          SHARED "create the folder first" gate
    ├─ con_Tracker             dashboard: all records                    ("TRACKER")
    ├─ con_ApprovalsDash       dashboard: approval workload              ("APPROVAL_DASH")
-   └─ tmr_Notify_Debounce     hidden timer, last child (see 07_UI_PATTERNS.md)
+   └─ tmr_Notify_Debounce     hidden timer, last child (see references/ui-patterns.md)
 ```
 
 Containers are plain manual layout group containers positioned by X and Y. No auto layout.
@@ -56,7 +56,7 @@ Visible: =varView = "FULL_FLOW"
     && If(varViewStep > 0, varViewStep, varDeal.Current_Step) = 2
 ```
 
-The `varViewStep` part is the clickable stepper pattern (browse a step without moving the record), detailed in 07_UI_PATTERNS.md. A useful addition is `varDevStep` (0 is normal, 1 to 8 force shows a step for debugging) and a SubStep condition for A and B phases.
+The `varViewStep` part is the clickable stepper pattern (browse a step without moving the record), detailed in references/ui-patterns.md. A useful addition is `varDevStep` (0 is normal, 1 to 8 force shows a step for debugging) and a SubStep condition for A and B phases.
 
 ## App.OnStart: the numbered sections
 
@@ -81,7 +81,7 @@ Set(varStep5_SubStep, "A");
 Set(varSendNotification_Ready, true);
 Set(varSendNotification_TimerStart, false);
 
-// 6) TYPED DEFAULTS (patch safety, see 06_POWERFX_RULES.md in the `powerapps-powerfx` skill)
+// 6) TYPED DEFAULTS (patch safety, see the `powerapps-powerfx` skill)
 Set(varReviewDefault, Defaults(Approvals));
 
 // 7) THEME (see below)

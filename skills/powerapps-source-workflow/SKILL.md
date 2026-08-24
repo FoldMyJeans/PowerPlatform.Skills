@@ -28,7 +28,7 @@ the one way door use `powerapps-build-playbook`. For an error message check
 has no Studio only controls (people picker combos, attachment forms). If it does, packing
 fails app wide (PA2108) and the workflow becomes Studio plus mirror: code goes to the human,
 gets confirmed working in Studio, and only then is mirrored into the repo and committed.
-Never advise packing an app past the door. `references/03_SOURCE_WORKFLOW.md` has the full
+Never advise packing an app past the door. `references/source-workflow.md` has the full
 mechanics of both eras.
 
 ## Workflow
@@ -36,15 +36,15 @@ mechanics of both eras.
 1. Establish which era the app is in. Era 1 (pre door): edit pa.yaml, pack, import. Era 2
    (post door): paste ready formulas to the human, confirm in Studio, mirror to the repo.
 2. For era 1 edits, follow the source tree and pa.yaml anatomy in
-   `references/03_SOURCE_WORKFLOW.md`, then run the build loop and the post import
+   `references/source-workflow.md`, then run the build loop and the post import
    verification checklist.
 3. For era 2, never commit unconfirmed changes. Paste first, confirm, then mirror.
-4. All repo changes ride the pull request workflow in `references/02_ENVIRONMENT_SETUP.md`.
+4. All repo changes ride the pull request workflow in `references/environment-setup.md`.
    No direct commits to main.
 
 ## References in this skill
 
-- `references/03_SOURCE_WORKFLOW.md`: the one way door, the source tree, pa.yaml anatomy,
+- `references/source-workflow.md`: the one way door, the source tree, pa.yaml anatomy,
   the era 1 build loop, the era 2 mirror loop, solutions, and the verification checklist.
-- `references/02_ENVIRONMENT_SETUP.md`: tools, pac auth, Windows gotchas, the pac commands
+- `references/environment-setup.md`: tools, pac auth, Windows gotchas, the pac commands
   that matter, repo layout, gitignore, the pull request workflow, and git discipline.

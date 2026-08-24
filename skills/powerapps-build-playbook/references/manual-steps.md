@@ -1,4 +1,4 @@
-# 10: Manual steps playbook. Every click that can never be code
+# Manual steps playbook. Every click that can never be code
 
 An AI assistant (or a remote developer) can write the YAML, the Power Fx, and the flow JSON. Everything on this page is what the human at the keyboard must do in a browser or in Power Apps Studio. Treat it as the standing division of labor, and keep a per app STUDIO_TODO.md that logs which of these are pending and exactly how to do each one.
 
@@ -19,7 +19,7 @@ An AI assistant (or a remote developer) can write the YAML, the Power Fx, and th
 | 2 | Create each list and every column, exact names and types | Against the written spec. No spaces in names. Order: roles list, main list, then the lists that look up into the main list. Choice values exactly as specced |
 | 3 | Create the document library, the top level route or bucket folders, and a Templates library holding the master checklists | Per record subfolders are made later by the flow |
 | 4 | Seed the roles list | At least one Admin row plus every approver role, or OnStart reads blanks |
-| 5 | Set SharePoint permissions | Lists Contribute or Read per the access model, confidential subfolder locked to its group (08_APPROVALS_PERMISSIONS.md in the `powerapps-approvals-and-flows` skill) |
+| 5 | Set SharePoint permissions | Lists Contribute or Read per the access model, confidential subfolder locked to its group (the `powerapps-approvals-and-flows` skill) |
 | 6 | Confirm the real internal column names back into SCHEMA_AS_BUILT.md | The code is written against these, so this closes phase 1 |
 
 ## Per app, canvas app side
@@ -37,25 +37,25 @@ An AI assistant (or a remote developer) can write the YAML, the Power Fx, and th
 
 | # | Step | Notes |
 |---|---|---|
-| 1 | Create each flow skeleton | PowerApps V2 trigger, inputs named and ordered, connection wired, one placeholder action. Then export for the code side to fill in (09_FLOWS.md in the `powerapps-approvals-and-flows` skill) |
-| 2 | Map connection references, first import only | Only when a solution lands in an environment for the first time. Every import after that is code: `pac solution import --path <zip> --async --max-async-wait-time 8` (02_ENVIRONMENT_SETUP.md in the `powerapps-source-workflow` skill) |
+| 1 | Create each flow skeleton | PowerApps V2 trigger, inputs named and ordered, connection wired, one placeholder action. Then export for the code side to fill in (the `powerapps-approvals-and-flows` skill) |
+| 2 | Map connection references, first import only | Only when a solution lands in an environment for the first time. Every import after that is code: `pac solution import --path <zip> --async --max-async-wait-time 8` (the `powerapps-source-workflow` skill) |
 | 3 | Add each flow to the app | Studio, Power Automate pane, Add flow. A `.Run()` does not resolve without this |
 | 4 | Re-add a flow after its inputs change | Remove and re-add in the pane. Clears the "received N, expected M" signature cache |
 | 5 | Turn the flows on and test one run each | Check the run history for green |
 
 ## Studio only controls (the one way door items)
 
-These cannot be packed from YAML, ever (03_SOURCE_WORKFLOW.md in the `powerapps-source-workflow` skill). Build them in Studio as the last step of the initial build. The YAML should already hold placeholders marking where they go. Once these exist, never pack again.
+These cannot be packed from YAML, ever (the `powerapps-source-workflow` skill). Build them in Studio as the last step of the initial build. The YAML should already hold placeholders marking where they go. Once these exist, never pack again.
 
 ### People picker combo boxes
 
 Insert, Input, Combo box. Per picker:
 
-- Name it exactly what the YAML expects (for example `cmb_S1_SalesRep`), because the Save button references it by name.
+- Name it exactly what the YAML expects (for example `cmb_S1_SalesOwner`), because the Save button references it by name.
 - Items: `Choices(<List>.<PersonColumn>)` for the directory behind that column.
 - Display field and Search field: `DisplayName`. Allow multiple selection: Off.
-- DefaultSelectedItems: `If(IsBlank(varDeal.Sales_Rep), [], Table(varDeal.Sales_Rep))` (swap the field per picker). For pickers pre-filling from an approvals row, the LookUp must include the cycle filter.
-- Then extend the Save button's Patch with the person writes: `Sales_Rep: cmb_S1_SalesRep.Selected, ...`
+- DefaultSelectedItems: `If(IsBlank(varDeal.Sales_Owner), [], Table(varDeal.Sales_Owner))` (swap the field per picker). For pickers pre-filling from an approvals row, the LookUp must include the cycle filter.
+- Then extend the Save button's Patch with the person writes: `Sales_Owner: cmb_S1_SalesOwner.Selected, ...`
 
 Build one, copy it, change the field. Three pickers is ten minutes.
 
@@ -66,7 +66,7 @@ The native multi file picker is a form stack: `Form` (New mode, bound to the fil
 1. Copy a working upload form from an existing app if you have one, or create a form bound to the list and keep only the attachments card.
 2. Name the three levels (`frm_Docs_Upload`, `dc_Docs_Attachments`, `att_Docs_Files`).
 3. Position it where the YAML placeholder sits, then delete the placeholder label.
-4. Wire the upload button: loop `att_Docs_Files.Attachments As f` into the upload flow (09_FLOWS.md in the `powerapps-approvals-and-flows` skill), then `Refresh(<index list>); ResetForm(frm_Docs_Upload); Reset(<link inputs>)`.
+4. Wire the upload button: loop `att_Docs_Files.Attachments As f` into the upload flow (the `powerapps-approvals-and-flows` skill), then `Refresh(<index list>); ResetForm(frm_Docs_Upload); Reset(<link inputs>)`.
 
 ### Adding flows to the app
 
@@ -88,6 +88,6 @@ After the one way door, every change follows this ritual:
 1. The code side (AI or developer) writes the exact property values and formula blocks, stated as "control X, property Y, paste this".
 2. The human pastes into Studio, saves, tests in the running app.
 3. Only after the human confirms it works: mirror the same change into the repo YAML, commit on a branch, open the PR. If it is rejected, nothing is committed.
-4. Periodically run the export and unpack on a branch and open a PR to true up the whole repo from the cloud (03_SOURCE_WORKFLOW.md in the `powerapps-source-workflow` skill).
+4. Periodically run the export and unpack on a branch and open a PR to true up the whole repo from the cloud (the `powerapps-source-workflow` skill).
 
 The order is the point. Paste first, confirm, then mirror. The repo only ever contains confirmed reality.

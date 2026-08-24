@@ -19,7 +19,8 @@ cause to fix.
 
 ## When to use
 
-Any error message or broken behavior lands here first. If the error is listed, apply the
+Any error message or broken behavior lands here first. Behavior that is wrong with no error
+at all has its own section, because an error index cannot be searched without an error. If the error is listed, apply the
 fix. If it is not, the reference ends with how to isolate an unlisted problem, and the fix
 then routes to the owning skill: formulas to `powerapps-powerfx`, pack and source issues to
 `powerapps-source-workflow`, data shape issues to `powerapps-sharepoint-data`, flow issues
@@ -29,15 +30,17 @@ to `powerapps-approvals-and-flows`.
 
 1. Get the exact error text. The errors panel message pasted verbatim is gold. "It does not
    work" is not debuggable.
-2. Look it up in `references/13_TROUBLESHOOTING.md`, organized by where it appears: build
+2. Look it up in `references/troubleshooting.md`, organized by where it appears: build
    and toolchain, Power Fx at author time, Power Fx at run time, state and data, Studio and
    environment.
-3. Apply the listed fix completely. Deliver the full corrected formula or command, not a
+3. When there is no error text, because the panel is clean and the flow run is green, read
+   the "Nothing errors" section first. Most wrong behavior in this stack fails silently.
+4. Apply the listed fix completely. Deliver the full corrected formula or command, not a
    fragment.
-4. If the root cause was a missing rule, add the gotcha to the owning skill's reference the
+5. If the root cause was a missing rule, add the gotcha to the owning skill's reference the
    same session. The index is only valuable while it reflects reality.
 
 ## References in this skill
 
-- `references/13_TROUBLESHOOTING.md`: the full error to cause to fix index, plus the
-  isolation method for anything not yet listed.
+- `references/troubleshooting.md`: the silent failure index, the full error to cause to fix
+  index, and the isolation method for anything not yet listed.
