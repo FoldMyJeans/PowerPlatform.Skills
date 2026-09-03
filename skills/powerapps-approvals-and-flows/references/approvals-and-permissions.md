@@ -116,12 +116,12 @@ The static grid above is the baseline for a list. A build with real confidential
 Shape proven in production, an automated flow (not app called) triggered on the main list's created or modified event:
 
 1. Trigger: SharePoint "When an item is created or modified" on the record list.
-2. `Break role inheritance` on the item (via the SharePoint REST HTTP action, see below), clearing sub scopes.
+2. Ensure the item carries unique permissions, then correct them against who should hold them. Breaking inheritance is not enough on its own, see below.
 3. Grant the item to: the standing groups (site owners, the approvers group) and the record's own person columns (sales rep, architect, finance lead, plus the item's author so a record is never orphaned before people are picked). Skip blank person columns, and de duplicate first, one person can hold two roles.
 4. If a subordinate folder already exists for the record (an idempotency flag, same pattern as folder creation), break inheritance on that folder too, then re break a further nested confidential subfolder with a narrower grant list (finance lead plus the approvers group plus owners, nobody else).
 5. A second automated flow does the same thing for the file index list, triggered on that list's created or modified event, looked up against the parent record for its person columns. Rows filed under the confidential subfolder get the narrow grant, everything else gets the record team.
 
-Because this runs on every edit, changing who is on a record (swap the finance lead) re syncs the grants automatically, no separate step needed. The consequence that falls out for free: SharePoint security trimming then scopes every browse gallery, dashboard, and KPI tile in the app to what the signed in user can actually open. A person filter in the app formula becomes redundant, the data source itself only returns what that user holds a grant on.
+Because this runs on every edit, changing who is on a record (swap the finance lead) grants the new person automatically. It does not remove the old one. See the section below, this is the single most expensive thing on this page to get wrong. The consequence that falls out for free: SharePoint security trimming then scopes every browse gallery, dashboard, and KPI tile in the app to what the signed in user can actually open. A person filter in the app formula becomes redundant, the data source itself only returns what that user holds a grant on.
 
 Known limits to write down, not surprises to rediscover: there is a short window (seconds) between a record being created and the flow locking it down. The flow re running on every edit is a feature, not a bug, but it means a manual SharePoint permission change on one item gets clobbered on the next edit, so permission changes belong in the flow's grant list, not clicked by hand.
 
@@ -137,11 +137,63 @@ GET  _api/web/sitegroups/getbyname('{GroupName}')?$select=Id
 GET  _api/web/associatedownergroup?$select=Id
 ```
 
-`roledefid` is the numeric role definition id, the common ones are Full Control (1073741829), Contribute or Edit (1073741830, matches the "Edit" level in most site templates), Read (1073741826). Look these up per site once, they can drift by SharePoint template.
+`roledefid` is the numeric role definition id. On a team site they come out as Full Control (1073741829), Edit (1073741830), Contribute (1073741827), Read (1073741826). Edit and Contribute are different levels and the numbers are easy to swap by accident, which grants list management rights to people who should only add items. Read them from the site rather than trusting the list above, they can drift by SharePoint template:
+
+```
+GET _api/web/roledefinitions?$select=Id,Name
+```
 
 `associatedownergroup` returns the site's built in Owners group, not everyone who happens to hold Full Control. A security group added straight to the site with Full Control is not a member of that group, so every item level grant built on `associatedownergroup` skips it. Those people keep full access to the site while losing access to each locked item, which reads as a permissions bug and is not one. Put admins and service accounts inside the Owners group itself rather than granting them Full Control directly.
 
 Pick the grant level per list, not by habit. A list the app only reads for gating (an approvals list whose rows a step gate counts) should grant the record team Read, not Edit. Read keeps the rows visible so the count stays correct, and stops a curious user editing a decision straight in SharePoint. Locking such a list away from the team entirely is worse than leaving it open, because the app's count then returns zero and the gate opens.
+
+### Breaking inheritance again does not remove anybody
+
+`breakroleinheritance` on a scope that already has unique permissions does nothing. It returns 200 and
+leaves every existing role assignment in place. The CSOM reference states it outright: if the securable
+object already has unique role assignments, the server must not alter them. Verified on a live site
+against both a list item and a document library folder, by breaking, granting two principals, breaking
+again, and reading the access list back unchanged.
+
+So the break and re grant shape above only ever adds people. A permission flow built on it never revokes
+anything. Pick the wrong sales rep, correct it, and the wrong one keeps access to the record, the folder,
+and every file in it, permanently and silently. Nothing in the flow run history looks wrong, because
+nothing failed.
+
+Do not fix this by adding `resetroleinheritance` before the break. That does force a clean slate, and it
+also throws away grants the flow is not the source of, in a window where the scope is briefly open to
+whoever the caller is. Compare and correct instead:
+
+1. Break inheritance. It is a no op once the scope is unique, so it is safe to call every run, and it
+   establishes the unique scope the first time.
+2. Read who currently holds the scope: `GET .../roleassignments?$select=PrincipalId`.
+3. Work out who should hold it from the record's own person columns.
+4. Remove everyone present who is not entitled, one call each.
+5. Add everyone entitled who is not present.
+
+Removing one principal, which the add and break calls have no equivalent of:
+
+```
+POST _api/web/lists/getbytitle('{List}')/items({id})/roleassignments/getbyprincipalid({principalId})
+     header  X-HTTP-Method: DELETE
+```
+
+Three things make this shape worth the extra calls. It never needs to know who left, which matters
+because the app overwrites the old person the moment a new one is picked, so by the time any flow runs
+the old value is gone. It survives an offboarded account, because a deleted user cannot be resolved by
+email but is still sitting in the access list as a principal id to remove. And it sweeps out grants the
+app never made at all, including sharing links somebody created by hand on a file.
+
+Two details that keep it from removing the wrong thing:
+
+- **The flow grants itself.** Breaking inheritance with `copyRoleAssignments=false` leaves the calling
+  identity holding Full Control, so the connection owner appears in every access list the flow has
+  touched. Treat it as entitled, or the flow removes its own access on the next run and locks itself out
+  of the record it just secured.
+- **Read the principal ids off the record, not the email.** A SharePoint person column already exposes
+  the site user id as `<Column>Id` on the REST item, so `Sales_RepId` is the principal id directly. That
+  removes an `ensureuser` call per person, and it keeps working when the account behind the name has been
+  deleted.
 
 ### Layer 1, confidential submission without read access: the drop box flow
 

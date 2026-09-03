@@ -240,7 +240,21 @@ This works and was done in production, but the skeleton first method above produ
 
 A `.Run()` only resolves after the flow is added to the app in Studio (the Power Automate pane). A YAML reference alone does not connect it, so the real `.Run()` wiring is part of the manual handoff (the `powerapps-build-playbook` skill). The proven interim: have the button patch the flag directly (`Patch(Deals, varDeal, { Folders_Created: true })`) so the gates and downstream UI can be tested before the flow exists, then swap in the real call in Studio. And after any flow signature change: remove and re-add the flow in the pane, or you get the argument count cache error.
 
-## Two connector and expression traps that only show up at activation or runtime
+## Connector and expression traps that only show up at activation or runtime
 
 - **`overwrite` on `CreateFile` gets rejected when you try to turn the flow on.** An older SharePoint `CreateFile` action carrying `"overwrite": true` in its parameters imports fine, looks fine in the designer, and then fails with `WorkflowOperationParametersExtraParameter`, "The API operation does not contain a definition for parameter 'overwrite'" the moment you try to enable it. The connector retired the parameter. Fix: delete the `overwrite` key from every `CreateFile` action's parameters. The behavior change is real, not just a JSON tweak: uploading a file whose name already exists in the folder now errors instead of silently replacing it, so if silent replace was relied on, handle that case explicitly (rename, or check first with `GetFileItem`).
 - **`createArray()` called with zero arguments throws at runtime**, not at save. A dedup pattern like `union(createArray(a, b, c), createArray())` (the empty call meant "no extra items") fails with `InvalidTemplate`, "'createArray' expects a comma separated list of parameters. The function was invoked with no parameters." `createArray()` needs at least one argument. Seed it with an empty string instead: `createArray('')`, then filter blanks out of the unioned result the same way you already filter blank emails or names.
+
+- **`select` and `filter` are actions, not template functions.** Writing
+  `select(body('Get_rows')?['value'], item()?['Id'])` in a Compose imports cleanly and fails every run
+  with `InvalidTemplate`, "The template function 'select' is not defined or not valid". The same is true
+  of `filter`, `map` and `reduce`. Use the `Select` and `Filter array` data operations instead. Their
+  output is an array reached through `body('<action>')`.
+- **`body()` and `outputs()` are not interchangeable, and which one is right follows from the action
+  type.** `body('X')` is documented as shorthand for `actions('X').outputs.body`. A Compose holds its
+  value directly in `outputs()` and has no body at all. A `Filter array`, a `Select`, a `Parse JSON` and
+  every connector action wrap theirs, so those need `body()`. Get it wrong and the value still arrives,
+  as the wrapper object rather than the array inside it, so the failure surfaces later and somewhere
+  else: `union` reporting "expects parameters of same type, but found 'Array,Object'" is this mistake one
+  action upstream. The designer's own `outputs('X')?['body/field']` is correct for either, because it
+  navigates into the wrapper, so do not go correcting those.
