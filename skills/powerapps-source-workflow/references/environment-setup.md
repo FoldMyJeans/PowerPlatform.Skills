@@ -50,17 +50,19 @@ Create a brand new connection instead, then repoint the connection reference at 
 ## The pac commands you will actually use
 
 ```powershell
-# Canvas app, direct (before the one way door, see references/source-workflow.md)
+# Canvas app (ship it through its solution to keep the AppId, see references/source-workflow.md)
 pac canvas list
 pac canvas download --name "<App Display Name>" --file-name app.msapp --overwrite
 pac canvas unpack --msapp app.msapp --sources src --layout SourceCode
 pac canvas pack   --msapp built.msapp --sources src --layout SourceCode
+python scripts/fix_picker_search.py live.msapp fixed.msapp   # people picker search, after a ship
 
-# Solution (the app plus its flows, the long term container)
+# Solutions (an app-only one and a flow one)
 pac solution export --name <SolutionName> --path C:\temp\sol.zip --overwrite
 pac solution unpack --zipfile C:\temp\sol.zip --folder <repo-folder>
 pac solution pack   --zipfile C:\temp\sol_build.zip --folder <repo-folder>
 pac solution import --path C:\temp\sol.zip --async --max-async-wait-time 8
+pac solution import --path C:\temp\app.zip --async --max-async-wait-time 15 --publish-changes --force-overwrite
 ```
 
 Always use `--layout SourceCode` on canvas unpack. It produces the readable one file per screen YAML that diffs cleanly in git. The default is the Experimental layout, which emits `*.fx.yaml` files and a different tree, so one unpack without the flag against a repo whose history is SourceCode rewrites the whole thing.
@@ -91,11 +93,11 @@ Every app gets its own private GitHub repo. The layout that worked:
                                   approvals, automation, access, build plan)
     SCHEMA_AS_BUILT.md            the real SharePoint list and column names
     app/
-      app.ps1                     pull helper (download live app and unpack)
+      app.ps1                     pack helper, and pull helper (download live app and unpack)
       src/                        canvas source: Src/App.pa.yaml, Src/scr_<X>.pa.yaml
       STUDIO_TODO.md              the manual steps log (see the `powerapps-build-playbook` skill)
     flows/
-      <SolutionName>/             unpacked solution: Other/, Workflows/, CanvasApps/
+      <SolutionName>/             unpacked flow solution: Other/, Workflows/
   source_files/                   confidential originals. GITIGNORED, never pushed
 ```
 
@@ -133,7 +135,7 @@ Two rules behind that list. First, binary `.msapp` files are build artifacts, th
 
 ## The pull request workflow
 
-Every change goes on its own branch and lands through a pull request. Nothing is committed straight to `main`. Protect `main` once the app is live so this is enforced, not just a habit (see references/source-workflow.md for how this maps to the two eras).
+Every change goes on its own branch and lands through a pull request. Nothing is committed straight to `main`. Protect `main` once the app is live so this is enforced, not just a habit.
 
 The loop is the same for docs and for source:
 
@@ -148,10 +150,10 @@ gh pr create
 
 Merge on GitHub after review. Zero approvals is fine when you work alone. Use one branch and one PR per feature or fix, not one giant "multiple fixes" commit.
 
-For a canvas app edited in Studio, the export step is the same three pac commands: `pac solution export`, `pac solution unpack`, then `pac canvas unpack --layout SourceCode`. Run them on your branch before you add and commit. The export and unpack helper cuts a branch and opens a PR for you, so the cloud changes still land as a reviewable PR instead of a commit straight to `main`.
+For a canvas app edited in Studio, pull it into source on your branch before you add and commit: `pac canvas download`, then `pac canvas unpack --layout SourceCode` (the `app.ps1 pull -Force` verb). The cloud changes then land as a reviewable PR instead of a commit straight to `main`.
 
 ## Git discipline that proved worth it
 
 - Protect `main` once the app is live. Require a pull request (zero approvals is fine when you work alone), block force pushes. Every change lands as one squash merged PR, so main reads one entry per finished piece of work.
 - Commit messages describe the change in app terms ("Add validation to client name field"), because the YAML diff under it can be thousands of lines of re-indentation.
-- The repo is the source of truth for history. The cloud is the source of truth for the running app. Know which direction sync flows in your current era (references/source-workflow.md) and never run a pull that overwrites hand authored source without a `-Force` style guard.
+- The repo is the source of truth for history. The cloud is the source of truth for the running app. Source edits reach the cloud by a ship, Studio edits reach the repo by a pull (references/source-workflow.md). Pull before editing source after any Studio publish, and never run a pull that overwrites hand authored source without a `-Force` style guard.

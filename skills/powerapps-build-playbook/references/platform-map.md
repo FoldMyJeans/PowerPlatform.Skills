@@ -45,7 +45,7 @@ Dataverse is the licensed premium database. SharePoint lists are included in sta
 
 The trade offs you accept:
 
-- No Power Platform Git Integration. That supported source control path requires the app to live in a Dataverse solution with Dataverse as the backing store. Without it, source control is the pac CLI workflow described in the `powerapps-source-workflow` skill, including its one way door.
+- No Power Platform Git Integration. That supported source control path requires the app to live in a Dataverse solution with Dataverse as the backing store. Without it, source control is the pac CLI workflow described in the `powerapps-source-workflow` skill, which ships a packed app through an app-only solution.
 - Delegation limits. SharePoint queries in Power Fx are only partly delegable. Person column filters are non delegable. Keep hot lists small (approvals, roles) and design dashboards so the non delegable parts run over small filtered sets.
 - No Business Process Flows. Multi step processes with branching are hand built with containers and a step number column. That is exactly what the patterns in this playbook do.
 
@@ -72,22 +72,20 @@ This is the most important planning table in the repo. Everything you build fall
 
 ### Bucket 1: canvas app source (pa.yaml). Codeable
 
-All of this can be written as YAML source and packed into an app, until the one way door closes (see the `powerapps-source-workflow` skill):
+All of this can be written as YAML source, packed, and shipped (see the `powerapps-source-workflow` skill):
 
 - Screens, group containers, labels, classic buttons, classic text inputs, checkboxes, date pickers, galleries (vertical and horizontal), HTML viewers, icons, rectangles, timers.
+- People pickers (`Classic/ComboBox`) and the attachment upload stack (`Form` plus `TypedDataCard` ClassicAttachmentsEdit plus `Attachments`). One combo property, `SearchItems`, cannot live in source. After each ship it is restored in the published msapp by a script in that skill.
 - Every Power Fx formula: App.OnStart, OnVisible, OnSelect, Visible, DisplayMode, Items, Fill, and the rest.
 - The theme record, all variables, all navigation logic, all gating logic.
 
-### Bucket 2: canvas app, Studio only. Never codeable
+### Bucket 2: canvas app, Studio clicks
 
-These controls exist only through Power Apps Studio. `pac canvas pack` rejects them (error PA2108) and there is no format that dodges it:
+These happen only in Power Apps Studio:
 
-- Combo boxes (people pickers). `Classic/ComboBox` needs the `SearchItems` property at runtime and pack rejects that property.
-- The attachment upload stack. `Form` plus `TypedDataCard` (ClassicAttachmentsEdit) plus `Attachments`. Same rich control family.
 - Adding a Power Automate flow to the app (the Power Automate pane) so `.Run()` resolves.
 - Running App.OnStart inside Studio, connecting data sources on first open.
-
-The moment one of these exists in the app, YAML packing is dead for the whole app forever. Sequence your build around that fact.
+- Opening the app for edit and publishing it after a ship, so the picker search fix has a published msapp to work on.
 
 ### Bucket 3: Power Automate flow definitions. Codeable after a skeleton exists
 
@@ -96,7 +94,7 @@ Flow logic is JSON and can be authored and edited as code, with one caveat: the 
 ### Bucket 4: maker portal clicks. Always manual
 
 - Creating the flow skeletons and connections.
-- Importing a packed .msapp.
+- Importing the first packed .msapp and creating the app-only solution around it. Every ship after that is command line.
 - Sharing the app with users, publishing versions.
 - Getting the app play URL for deep links.
 
@@ -129,7 +127,7 @@ These are the physics every pattern in this repo assumes:
 | You want to | Read |
 |---|---|
 | Set up the tools | the `powerapps-source-workflow` skill |
-| Understand pa.yaml and the one way door | the `powerapps-source-workflow` skill |
+| Understand pa.yaml and shipping from source | the `powerapps-source-workflow` skill |
 | Design the lists | the `powerapps-sharepoint-data` skill |
 | Understand the app shell | the `powerapps-architecture-and-ui` skill |
 | Write correct Power Fx | the `powerapps-powerfx` skill |

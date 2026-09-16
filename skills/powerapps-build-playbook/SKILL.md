@@ -3,7 +3,7 @@ name: powerapps-build-playbook
 description: >-
   Plan and run a whole Power Apps build end to end: the platform map (what is code versus
   what is clicks), the phase sequence (process understanding, clickable mockup, SharePoint
-  first, app skeleton, container loop, one way door sequencing, flows last, hardening), the
+  first, app skeleton, container loop in source, flows last, hardening), the
   manual steps playbook with exact click specs and STUDIO_TODO.md, and how to wire an AI
   assistant into the build. Use whenever the user starts a new app, asks what to build first
   or what to click, plans phases, needs specs for manual SharePoint or Studio or maker portal
@@ -33,19 +33,21 @@ for pa.yaml and packing, `powerapps-architecture-and-ui` for the shell and patte
    code what belongs to a clicks bucket.
 2. Run the phases in `references/build-playbook.md` in order: understand the process,
    clickable mockup, SharePoint first, app skeleton, container by container with a human in
-   the loop, sequence the one way door, flows last, then harden.
+   the loop, flows last, then harden.
 3. The human does the clicks. Sites, lists, columns, permissions, connections, flow
-   skeletons, imports, sharing, Studio only controls. Write them exact specs from
+   skeletons, the first import, sharing, adding flows in Studio, the Studio publish after a
+   ship. Write them exact specs from
    `references/manual-steps.md` and track pending manual work in a STUDIO_TODO.md.
-4. Code goes to the human first, gets confirmed working, and only then is mirrored into the
-   repo and committed. Never commit unconfirmed changes.
+4. Every change is confirmed working in the real app before it is committed. Never commit
+   unconfirmed changes.
 5. To set up the collaboration itself (instructions template, division of labor, running the
    loop), use `references/working-with-ai.md`.
 
 ## Hard rules
 
-- Sequence the one way door deliberately. Land everything expressible in YAML while still in
-  era 1, then build the Studio only items in one session and never pack again.
+- Build the whole app in source, people pickers and attachment forms included, and ship it
+  through its app-only solution with the procedure in the `powerapps-source-workflow` skill.
+  Never write `SearchItems` into pa.yaml. Picker search is restored after each ship.
 - Redact anything shareable. A fictional company name, role titles instead of people names,
   placeholder tenant URLs and GUIDs. Verify with a grep before committing.
 - Keep the docs honest. A gotcha earned on a real build gets added to the matching reference
@@ -57,6 +59,6 @@ for pa.yaml and packing, `powerapps-architecture-and-ui` for the shell and patte
   the design principles.
 - `references/build-playbook.md`: the end to end phase sequence with time expectations.
 - `references/manual-steps.md`: every click that can never be code, exact specs, the
-  STUDIO_TODO.md artifact, and the paste driven change loop.
+  STUDIO_TODO.md artifact, and small edits pasted in Studio.
 - `references/working-with-ai.md`: wiring an AI assistant into the build, the custom
   instructions template, the division of labor, and the redaction convention.

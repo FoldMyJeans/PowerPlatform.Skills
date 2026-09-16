@@ -15,11 +15,12 @@ find is often the answer for a licence you do not have.
 
 Here is what that looks like. You want the app in git so changes are reviewable. The
 documented answer is Git Integration, and it needs Dataverse. The answer available on your
-licence is `pac canvas unpack`, which turns the app into readable YAML you can diff and
-commit, and packs back cleanly right up until someone adds a people picker or an attachment
-form. From that moment packing fails for the whole app and never works again. Both answers
-are correct. Only one is available to you, and it decides the order you build in: everything
-expressible in YAML lands first, the Studio only controls go in last, in one deliberate batch.
+licence is `pac canvas unpack` and `pack`, which turn the app into readable YAML you can diff
+and commit, and back into an app. The whole app round trips, people pickers and attachment
+forms included, except one property: a people picker's search. Ship naively and every picker
+still opens and quietly finds nobody. Both answers are correct. Only one is available to you,
+and it comes with a procedure: ship through an app-only solution so the app keeps its id,
+publish once in Studio, and restore picker search with a script.
 
 This repo is the second kind of answer, collected in one place. Where something genuinely
 needs Dataverse or a premium connector, it says so and gives the standard licence alternative
@@ -30,13 +31,13 @@ load these skills rather than point an agent at the official documentation.
 
 **It says do not.** Do not press Reconnect on a dead connection, create a new one and repoint
 the reference. Do not put spaces in a SharePoint column name. Do not let a step transition
-create approval rows. Do not pack an app past the door. Vendor documentation rarely calls a
+create approval rows. Do not write `SearchItems` into pa.yaml. Vendor documentation rarely calls a
 feature a trap, because it has to support every feature it ships. Knowing which door not to
 open is the part you cannot get from a reference.
 
 **It is organized around silent failure.** Most of what goes wrong here does not error. A
-pasted people picker searches the wrong field and still opens, still lets you pick a person,
-and simply never matches what you type. A filter that cannot fold computes over the first 500
+people picker shipped from source still opens, still lets you pick a person, and simply never
+matches what you type. A filter that cannot fold computes over the first 500
 rows and returns a confident wrong count. `pac solution import` without `--async` prints
 nothing at all, which reads as a hang. A clean pack is not a clean app. That matters more when
 an agent is writing the code, because an agent reading the documentation produces something
@@ -56,7 +57,7 @@ rather than a caveat at the end of one.
 | Skill | What it does | Example trigger |
 |---|---|---|
 | [`powerapps-build-playbook`](skills/powerapps-build-playbook/SKILL.md) | The phase order for a whole build, the map of what is code versus what is clicks, manual step specs, and how to wire an AI assistant in. Start here. | "build a new power app", "where do I start", "what do I click" |
-| [`powerapps-source-workflow`](skills/powerapps-source-workflow/SKILL.md) | pa.yaml, pack and unpack, the one way door (PA2108), pac auth, solutions, and the app repo layout. | "unpack the msapp", "pack fails", "PA2108" |
+| [`powerapps-source-workflow`](skills/powerapps-source-workflow/SKILL.md) | pa.yaml, pack and unpack, shipping from source with the app id kept, restoring people picker search, pac auth, solutions, and the app repo layout. | "unpack the msapp", "ship from source", "PA2108" |
 | [`powerapps-sharepoint-data`](skills/powerapps-sharepoint-data/SKILL.md) | List design as the database. The standard list shape, naming, column types, delegation, and the schema contract doc. | "design my SharePoint lists", "delegation warning" |
 | [`powerapps-architecture-and-ui`](skills/powerapps-architecture-and-ui/SKILL.md) | The single screen shell, OnStart and OnVisible, naming, and the proven UI patterns: steppers, gates, shared panels, dashboards. | "add a panel", "build a stepper", "OnStart" |
 | [`powerapps-powerfx`](skills/powerapps-powerfx/SKILL.md) | Every Power Fx formula, and the non negotiable rules written as wrong versus right code. | "my Power Fx has an error", "patch is not saving" |
@@ -184,9 +185,9 @@ corrupt the repo.
 
 ## A note on what is here
 
-The canvas source workflow (`pac canvas pack` and `unpack`) is a deprecated preview feature
-and a one way door. The `powerapps-source-workflow` skill explains exactly where it breaks and
-how to work after it does, rather than pretending it is not there.
+The canvas source workflow (`pac canvas pack` and `unpack`) is a deprecated preview feature.
+The `powerapps-source-workflow` skill names the one property it cannot carry and ships whole
+apps from source anyway, rather than pretending the gap is not there.
 
 The examples use a fictional deal review app (`Deals`, `Approvals`, `Role_Config`, `varDeal`)
 so every formula reads concretely, and every skill writes against that same schema so an
