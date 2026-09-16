@@ -211,7 +211,7 @@ The missing ingredient is the solution's `<Version>`. Bump it by hand before rez
 
 The cycle:
 
-1. Remove the canvas app from the solution first. The export and import get much smaller and faster, and an import can no longer overwrite live Studio work on the app. Add it back later for a periodic true up export.
+1. Keep the canvas app out of the flow solution. It lives alone in an app-only solution (the `powerapps-source-workflow` skill), so a flow export and import stay small and fast and can never overwrite the app.
 2. `pac solution export --name <SolutionName>` and unzip it. The `<Version>` element lives in `solution.xml` at the root of the exported zip, and in `Other/Solution.xml` once unpacked into a repo.
 3. Edit `Workflows/<FlowName>-<GUID>.json` by hand.
 4. Bump `<Version>`.

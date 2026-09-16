@@ -254,4 +254,4 @@ Apply it to every button that patches the open record, saves, locks, and step mo
 
 ### Rule 23: A clean pack is not a clean app
 
-`pac canvas pack` checks structure and control schema, not Power Fx types or scopes. The Formulas and errors panel in Studio after import is the real correctness check. Open it every time, clear every red.
+`pac canvas pack` does not validate property names, YAML syntax, or Power Fx types and scopes. Loading the app in Studio and reading the Formulas and errors panel is the real correctness check. Open it every time, clear every red.

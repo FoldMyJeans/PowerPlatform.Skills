@@ -80,20 +80,20 @@ The assistant cannot click. Keep the boundary explicit in every plan:
 | The AI does | The human does |
 |---|---|
 | Design the data model, write the column specs | Build the site, lists, columns, permissions (references/manual-steps.md) |
-| Write and edit pa.yaml source (era 1) | Pack or import, or both if a coding agent runs pac |
-| Write exact paste ready Power Fx (era 2) | Paste into Studio, test, confirm |
+| Write and edit pa.yaml source, pack and ship it if a coding agent runs pac | Load the build in Studio, test, publish after a ship |
+| Write exact paste ready Power Fx for small edits | Paste into Studio, test, publish |
 | Write flow JSON logic | Create flow skeletons, export, import, add flows to the app |
-| Write STUDIO_TODO.md specs for Studio only controls | Build the combos and attachment forms in Studio |
-| Mirror confirmed changes into the repo, write commits and PRs | Approve what ships, merge (or delegate merging after confirming) |
+| Write STUDIO_TODO.md specs for the Studio clicks | Add data sources and flows in Studio |
+| Pull confirmed Studio changes into the repo, write commits and PRs | Approve what ships, merge (or delegate merging after confirming) |
 | Keep the docs true | Report what the screen actually shows |
 
 ## Running the loop well
 
 - One container, one flow, or one fix per turn. Real apps get built in hundreds of small confirmed turns, not five big drops.
 - Feedback is what you see: the red error text, a screenshot, "the button stays grey". The errors panel message is gold, paste it verbatim.
-- Paste first, confirm, then mirror to git. Never commit unconfirmed changes (references/manual-steps.md).
+- Confirm in the real app, then commit. Never commit unconfirmed changes (references/manual-steps.md).
 - When the assistant asks for the current Choice values or the real column names, that is the process working. Paste from SharePoint settings, do not answer from memory.
-- Start each work session by stating where things stand ("we are past the one way door", "the folder flow is wired, notifications are not"). Or better, keep STUDIO_TODO.md current and point at it.
+- Start each work session by stating where things stand ("the repo is pulled up to date with the live app", "the folder flow is wired, notifications are not"). Or better, keep STUDIO_TODO.md current and point at it.
 
 ## Redaction convention for everything that leaves the machine
 

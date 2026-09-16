@@ -41,7 +41,7 @@ Use this when structuring the app or building UI. For the raw formula rules use
 - Visibility is not authority. A hidden button is UX. Real access control is the two layer
   model in `powerapps-approvals-and-flows`.
 - Follow the naming conventions in the architecture reference exactly. Consistent names are
-  what make the mirror loop reviewable.
+  what make source diffs and pull requests reviewable.
 
 ## References in this skill
 
