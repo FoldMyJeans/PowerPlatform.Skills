@@ -223,6 +223,10 @@ Solution aware flows have no "Run only users" panel, so do not go looking for on
 5. Type a name into a people picker. If it finds nobody, finish the ship procedure from step 4.
 6. If a flow signature changed, remove and re-add the flow in the Power Automate pane (see the `powerapps-troubleshooting` skill, "received 9, expected 7-8").
 7. Every flow in the expected state, on or off, and connection references pointing at the right connections.
+8. After any command-line import, of the app or of the flows, remove every flow in the Power Automate pane, add each one back under the same name, check the Formulas panel is still clean, then Save and Publish. A plain Publish is not enough.
+9. Have one normal user, not the owner and not the service account, reload the app and click a button that calls a flow. Then confirm a run by that user exists in the flow's history.
+
+Steps 8 and 9 exist because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. It is not yet known whether the app import or the flow import causes it, so the rule covers both.
 
 ## What belongs in git
 
