@@ -71,6 +71,9 @@ Rules that matter:
 - Multi line formulas use a `|-` block scalar under the property, each line prefixed by the deeper indent.
 - A formula containing `: ` (colon space, as in a record literal `{ Value: "Open" }`) must be a `|-` block scalar, even on one line. Inline it reads as a YAML mapping.
 - When pasting YAML into Studio, use `|-` block scalars, never `|+`. Studio rejects `|+` with `PA1001 YamlInvalidSyntax`.
+- A formula with trailing spaces on any line unpacks as one double quoted line with `\n` written out, not as a block scalar. A script that edits formulas line by line finds nothing there, so make it assert every match and handle that form too.
+- A `Form` needs the control level key `Layout: Vertical` next to `Variant`. It is not a property, so a generator that writes only Control, Variant and Properties drops it. Pack and the import both pass, then Studio refuses to open the whole app with `PA1011`.
+- `AddColumns` wants the new column name as a bare identifier (`AddColumns(T, DispStatus, ...)`), even in an msapp that says `powerfxv1: false`. `SortByColumns(T, "Name", ...)` with a string still works.
 - Control declarations carry a version: `Label@2.5.1`, `Classic/Button@2.2.0`. Copy versions from controls that already exist in the app.
 - Containers used are plain `GroupContainer@1.5.0` with `Variant: ManualLayout`, positioned by X and Y. No auto layout containers. Manual positioning is more YAML but it packs and behaves predictably.
 
@@ -123,18 +126,18 @@ The canonical procedure. It updates the existing app in place, so the AppId, the
 
 1. The app lives alone in an app-only solution. Flows live in their own solution, so an app import never touches a flow (see Solutions below).
 2. Start from source pulled from the live app (`pac canvas download`, then `pac canvas unpack --layout SourceCode`) unless the repo is already current. Edit `Src/*.pa.yaml`, then `pac canvas pack --sources <src> --msapp build.msapp`.
-3. `pac solution export --name <AppSolution> --path app.zip`. Unzip it. Replace `CanvasApps/<name>_DocumentUri.msapp` with `build.msapp`. Bump `<Version>` in `solution.xml` at the zip root. Zip the folder contents (not the folder itself) back to `app.zip`, then import:
+3. Close every Studio tab of the app, yours and anyone else's. Then `pac solution export --name <AppSolution> --path app.zip`. Unzip it. Replace `CanvasApps/<name>_DocumentUri.msapp` with `build.msapp`. Bump `<Version>` in `solution.xml` at the zip root. Zip the folder contents (not the folder itself) back to `app.zip`, then import:
    ```
    pac solution import --path app.zip --async --max-async-wait-time 15 --publish-changes --force-overwrite
    ```
    Without the version bump the import reports success and applies nothing.
-4. People pickers now have no working search. Open the app in Studio for edit and Publish. Nothing to paste or rebuild, the publish is the whole step.
+4. People pickers now have no working search. Open the app in Studio for edit and confirm that a control you added is in the tree view, which proves your build loaded. Then Publish. If Studio shows nothing to save, change a property and change it back (typed, not Undo) first, because a publish with no edit does not save a new copy.
 5. Download the published app and fix it:
    ```
    pac canvas download --name "<App name>" --file-name live.msapp
    python scripts/fix_picker_search.py live.msapp fixed.msapp
    ```
-   If the script says the msapp still loads from YAML, step 4 did not happen.
+   If the script says the msapp still loads from YAML, step 4 did not happen. Expect one change per picker, because a Studio publish resets them all. `0 change(s)` here means the publish did not contain your build, so stop and do not import. The script writes no output file in that case.
 6. Swap `fixed.msapp` into the solution exactly as in step 3, bump `<Version>` again, and import.
 7. Verify. Download again (add `--overwrite`) and run `python scripts/fix_picker_search.py live.msapp` with no output file. Expect `0 change(s), 0 manual`. Then type a name into one picker in Play mode. A player still showing the old version needs the "You're using an old version, Refresh" banner clicked.
 
@@ -149,6 +152,8 @@ What the script does, per `Classic/ComboBox` in `Controls/*.json`:
 
 Notes:
 
+- An open Studio session can swallow a ship with every step reporting success. A Studio tab stayed open during an import. The import finished in under a minute instead of minutes, Studio then opened the old app, and the publish and the picker fix shipped the old app under a higher version number. The first picker fix reporting `0 change(s)` and the missing control in the tree view were the only clues. Re-importing the same build with Studio closed worked.
+- Before the first import, confirm whoever or whatever does step 4 can reach Studio and is signed in. Otherwise pickers stay broken until someone can.
 - Pickers are broken from step 3 until step 6 lands, a matter of minutes. On an app people are using, run steps 3 to 6 back to back in a quiet window.
 - Studio edits made after a ship live only in the cloud. Run `app.ps1 pull -Force` and commit before the next source edit, or the next ship overwrites them. The pull brings no `SearchItems` into source, which is correct.
 
@@ -223,10 +228,25 @@ Solution aware flows have no "Run only users" panel, so do not go looking for on
 5. Type a name into a people picker. If it finds nobody, finish the ship procedure from step 4.
 6. If a flow signature changed, remove and re-add the flow in the Power Automate pane (see the `powerapps-troubleshooting` skill, "received 9, expected 7-8").
 7. Every flow in the expected state, on or off, and connection references pointing at the right connections.
-8. After any command-line import, of the app or of the flows, remove every flow in the Power Automate pane, add each one back under the same name, check the Formulas panel is still clean, then Save and Publish. A plain Publish is not enough.
+8. After a command-line import, refresh a flow in the Power Automate pane if it looks stale, then Save and Publish. Do not remove and re-add every flow as routine.
 9. Have one normal user, not the owner and not the service account, reload the app and click a button that calls a flow. Then confirm a run by that user exists in the flow's history.
 
-Steps 8 and 9 exist because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. It is not yet known whether the app import or the flow import causes it, so the rule covers both.
+Step 9 exists because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. The cause was never found, and it has one recorded incident. So re-adding is the fix for a failed step 9, not a routine ship step. It was routine for a while and cost a quarter of an hour on every ship.
+
+## Driving Studio from a browser tool
+
+An agent with a browser tool can run the Studio steps of a ship by itself, once a person has signed in. An agent never types the password. These are what the tool does not tell you.
+
+- The Studio canvas and its panes sit in a cross origin frame. Accessibility trees, element search and page scripts see only the portal header around it, so work from screenshots and coordinates. Use a large viewport, 1600 by 1000 is enough, and take a new screenshot after anything that changes the layout.
+- The screen lags behind your input, and more so while flows are out of the app and formulas are in error. A menu or list can appear 10 to 20 seconds after the click, and a screenshot can show the state before it. Clicks queue up and land later. Only click a target that a screenshot already shows, and never chain a click on a search result in the same batch as the search.
+- Studio opening read only with "you already have editing control elsewhere" is your own earlier session. Override takes it back. If the banner names someone else, stop and ask.
+- In the Power Automate pane, Add flow lists every flow in the environment, other apps' flows included. Search the exact name and see the single result before you click it.
+- Row menus hold Edit, Refresh and Remove from app close together, and a list that shrinks loses its scrollbar, so the menu button moves sideways. Check the open menu before you click an item. A stray Refresh is harmless but makes the list look stuck.
+- When the pane's list is empty, a large Create new flow button sits where the search results were. Clicking it opens the flow designer. Close it, nothing is created until you pick a template.
+- In App checker, Formulas lists an Errors group above Warnings. No Errors group means zero errors. Delegation warnings on existing formulas do not count.
+- A publish toast from an earlier session can still be on screen. Read the time on it.
+
+Test against real data without changing it. A blank new record form is safe for picker search: type a name, read the list, select nothing.
 
 ## What belongs in git
 

@@ -41,11 +41,13 @@ picker search in YAML or Studio. After every ship, restore it in the published m
    never Save). Pack does not validate property names, YAML syntax, or Power Fx.
 4. Ship through the app-only solution, keeping the AppId. The canonical procedure is
    "Shipping from source" in `references/source-workflow.md`. In short:
-   - Export the app solution, swap in the build msapp, bump `<Version>`, zip, import with
+   - Close every Studio tab of the app first. Export the app solution, swap in the build msapp, bump `<Version>`, zip, import with
      `--async --publish-changes --force-overwrite`.
-   - If the app has people pickers: open it in Studio and Publish, `pac canvas download`,
+   - If the app has people pickers: open it in Studio, confirm a control you added is in the
+     tree view, and Publish. `pac canvas download`,
      `python scripts/fix_picker_search.py live.msapp fixed.msapp`, swap `fixed.msapp` in the
-     same way (bump `<Version>` again), import.
+     same way (bump `<Version>` again), import. `0 change(s)` from that script right after a
+     publish means the publish was not your build, so stop.
    - Verify: download again, the script in report mode prints `0 change(s), 0 manual`, and a
      typed name finds a person in Play mode.
 5. On a live app, run the ship back to back in a quiet window. Pickers have no search
@@ -65,6 +67,7 @@ picker search in YAML or Studio. After every ship, restore it in the published m
 
 - `references/source-workflow.md`: what pack can and cannot carry, the source tree, pa.yaml
   anatomy with a people picker example, the dev loop, the shipping procedure, small Studio
-  edits, the two solutions, delete and reimport facts, ownership, and the verification checklist.
+  edits, the two solutions, delete and reimport facts, ownership, the verification checklist,
+  and driving Studio from a browser tool.
 - `references/environment-setup.md`: tools, pac auth, Windows gotchas, the pac commands
   that matter, repo layout, gitignore, the pull request workflow, and git discipline.

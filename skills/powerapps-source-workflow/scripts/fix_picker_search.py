@@ -69,6 +69,9 @@ def run(src, dst=None, out=print):
     for m in manual:
         out('MANUAL ' + m)
     out(f'{todo} change(s), {len(manual)} manual')
+    if dst and not todo and not manual:
+        out('Nothing to fix, no file written. Right after a Studio publish this means the publish was not your build.')
+        return 0
     if dst:
         with zipfile.ZipFile(dst, 'w') as zout:
             for info in zin.infolist():
@@ -101,6 +104,13 @@ def selftest():
     assert fixed['cmb_Odd']['SearchItems'].startswith('Search(ComboBoxSample')  # left for a human
     assert any('MANUAL cmb_Odd' in line for line in log)
     assert zipfile.ZipFile(dst).read('Header.json') == b'{}'
+    done = io.BytesIO()
+    with zipfile.ZipFile(done, 'w') as z:
+        z.writestr('Controls/1.json', json.dumps({'TopParent': {'Name': 'scr', 'Template': {'Id': 'screen'}, 'Children': [
+            combo('cmb_Done', 'Choices(Deals.Lead)', 'Choices(Deals.Lead,cmb_Done.SearchText)')]}}))
+    untouched = io.BytesIO()
+    assert run(done, untouched, out=log.append) == 0
+    assert untouched.getvalue() == b''  # nothing to fix: no file, the caller can tell
     packed = io.BytesIO()
     with zipfile.ZipFile(packed, 'w') as z:
         z.writestr('packed.json', '{}')
