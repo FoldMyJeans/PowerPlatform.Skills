@@ -112,8 +112,15 @@ Inside a Claude Code chat session, the interactive form also works:
 ```
 
 The `/plugin` command is not available in every surface (the desktop app hides it), so use the
-terminal commands above if you do not see it. Update later with
-`claude plugin update powerplatform-skills` (or `/plugin update` in chat).
+terminal commands above if you do not see it.
+
+Update later by refreshing the marketplace, then updating the plugin by its full id. The
+short name alone fails with "not found". Restart Claude Code afterwards.
+
+```
+claude plugin marketplace update powerplatform-skills
+claude plugin update powerplatform-skills@powerplatform-skills
+```
 
 ### Codex, Cursor, and other agents that read ~/.agents/skills
 
@@ -170,7 +177,7 @@ them.
 
 To add or change a skill, edit under `skills/` on a branch and open a pull request. Bump the
 `version` in `.claude-plugin/plugin.json` so installed copies pick it up on the next
-`/plugin update`. See AGENTS.md for the writing rules and the standard licence lens.
+update. See AGENTS.md for the writing rules and the standard licence lens.
 
 Before committing, run the check script. It enforces the writing rules, the file size caps,
 the self containment rule, and redaction:
