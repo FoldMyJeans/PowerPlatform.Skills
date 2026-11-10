@@ -75,7 +75,7 @@ This is the most important planning table in the repo. Everything you build fall
 All of this can be written as YAML source, packed, and shipped (see the `powerapps-source-workflow` skill):
 
 - Screens, group containers, labels, classic buttons, classic text inputs, checkboxes, date pickers, galleries (vertical and horizontal), HTML viewers, icons, rectangles, timers.
-- People pickers (`Classic/ComboBox`) and the attachment upload stack (`Form` plus `TypedDataCard` ClassicAttachmentsEdit plus `Attachments`). One combo property, `SearchItems`, cannot live in source. After each ship it is restored in the published msapp by a script in that skill.
+- People pickers (`Classic/ComboBox`) and the attachment upload stack (`Form` plus `TypedDataCard` ClassicAttachmentsEdit plus `Attachments`). One combo property, `SearchItems`, cannot live in source. After each ship it is restored in the published msapp by a script in that skill, unless the picker is the non searchable kind fed by a text input.
 - Every Power Fx formula: App.OnStart, OnVisible, OnSelect, Visible, DisplayMode, Items, Fill, and the rest.
 - The theme record, all variables, all navigation logic, all gating logic.
 
@@ -85,7 +85,7 @@ These happen only in Power Apps Studio:
 
 - Adding a Power Automate flow to the app (the Power Automate pane) so `.Run()` resolves.
 - Running App.OnStart inside Studio, connecting data sources on first open.
-- Opening the app for edit and publishing it after a ship, so the picker search fix has a published msapp to work on.
+- Opening the app for edit and publishing it after a ship, so the picker search fix has a published msapp to work on. Only needed for searchable people pickers.
 
 ### Bucket 3: Power Automate flow definitions. Codeable after a skeleton exists
 

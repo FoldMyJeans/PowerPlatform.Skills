@@ -15,14 +15,21 @@ The combo's `SearchItems` property cannot live in source:
 - Unpack omits it.
 - If you add it to pa.yaml, Studio's YAML loader rejects the app with `PA2108 Unknown property 'SearchItems' for Classic/ComboBox`.
 - Studio's Advanced pane does not expose it.
-- `Items: Choices(Deals.Sales_Owner, Self.SearchText)` does not give search either.
+- Whatever compiles the YAML, Studio or the player, gives every searchable combo the template sample `Search(ComboBoxSample, Self.SearchText, Value1)`. The dropdown shows blank rows even before anyone types, and typing finds nobody.
+- Putting the search text into `Items` does not help, as `Choices(Deals.Sales_Owner, Self.SearchText)` or with the combo's own name. The template `SearchItems` still wins.
+- The `.msapr` sidecar holds the last Studio compiled `Controls/*.json`, the correct `SearchItems` included. Studio and the player rebuild from the YAML and drop it.
 
-So never try to fix picker search in YAML or in Studio. It is restored after the ship, in the published msapp, by `scripts/fix_picker_search.py` in this skill (see Shipping from source below).
+So never try to fix picker search in YAML or in Studio. Pick one of two ways out:
 
-Two msapp states matter for that fix:
+- Patch it after the ship. `scripts/fix_picker_search.py` in this skill rewrites `SearchItems` in the published msapp (Shipping from source below). One combo per picker, looks like any picker, costs a second import on every ship.
+- Do not make the combo searchable. Set `IsSearchable: =false` on the combo and put a classic text input next to it, with the combo's `Items: =Choices(Deals.Sales_Owner, txt_S1_OwnerSearch.Text)`. The text input does the search over the whole directory, the combo shows and selects the person, and it ships from source with no patch. The cost is a second box per picker, which some teams turn down for looks.
+
+Two msapp states matter for the patch:
 
 - A source packed msapp contains `packed.json` with `LoadFromYaml` true. The app loads from `Src/*.pa.yaml` and the `Controls/*.json` inside it are stale.
 - Once the app has been opened in Studio and published, a downloaded msapp has no `packed.json` and `Controls/*.json` is authoritative. That is the file the script edits.
+
+A packed app imported in a solution plays for users straight away. Nobody has to open Studio first. So from the first import until the patched import lands, every searchable people picker is broken for real users.
 
 ## The source tree
 
@@ -69,12 +76,13 @@ Rules that matter:
 
 - Indentation is load bearing. A top level container child sits at 12 spaces (`            - con_X:`), its `Control`, `Properties` and `Children` keys at 16, its child controls at 18, their properties at 24. Moving a control between nesting levels re-indents every line under it. Treat a move as a rewrite, not a shuffle.
 - Multi line formulas use a `|-` block scalar under the property, each line prefixed by the deeper indent.
-- A formula containing `: ` (colon space, as in a record literal `{ Value: "Open" }`) must be a `|-` block scalar, even on one line. Inline it reads as a YAML mapping.
+- A formula containing `: ` (colon space) must be a `|-` block scalar, even on one line. That covers a record literal `{ Value: "Open" }` and a plain string such as `Text: ="Status: open"`. Inline it reads as a YAML mapping. Pack accepts it, Studio refuses to open the app with `PA1001 YamlInvalidSyntax`, and the player shows "This app couldn't be published".
 - When pasting YAML into Studio, use `|-` block scalars, never `|+`. Studio rejects `|+` with `PA1001 YamlInvalidSyntax`.
 - A formula with trailing spaces on any line unpacks as one double quoted line with `\n` written out, not as a block scalar. A script that edits formulas line by line finds nothing there, so make it assert every match and handle that form too.
 - A `Form` needs the control level key `Layout: Vertical` next to `Variant`. It is not a property, so a generator that writes only Control, Variant and Properties drops it. Pack and the import both pass, then Studio refuses to open the whole app with `PA1011`.
 - `AddColumns` wants the new column name as a bare identifier (`AddColumns(T, DispStatus, ...)`), even in an msapp that says `powerfxv1: false`. `SortByColumns(T, "Name", ...)` with a string still works.
 - Control declarations carry a version: `Label@2.5.1`, `Classic/Button@2.2.0`. Copy versions from controls that already exist in the app.
+- Not every property a control has in one family exists in another. `Classic/Button` rejects `AccessibleLabel` with `PA2108` when Studio opens the app, though pack accepts it. Copy property names from an unpacked control of the same type, not from memory.
 - Containers used are plain `GroupContainer@1.5.0` with `Variant: ManualLayout`, positioned by X and Y. No auto layout containers. Manual positioning is more YAML but it packs and behaves predictably.
 
 Common control set that packs cleanly: `GroupContainer@1.5.0`, `Label@2.5.1`, `Classic/Button@2.2.0`, `Classic/TextInput@2.3.2`, `Classic/CheckBox@2.1.0`, `Classic/DatePicker@2.6.0`, `Classic/ComboBox@2.4.0`, `Gallery@2.15.0` (Variant Vertical or Horizontal), `HtmlViewer@2.1.0`, `Timer`, `Icon`, `Rectangle`, and the attachment form stack.
@@ -96,7 +104,29 @@ A people picker in source. No `SearchItems` line, ever:
                   Width: =300
 ```
 
-Keep `Items` a plain `Choices(<List>.<PersonColumn>)`. The fix script derives search from it, and any other shape is left for a human. The Save button writes the person with `Sales_Owner: cmb_S1_SalesOwner.Selected`, and a picker that pre-fills from an approvals row carries the cycle filter in its `DefaultSelectedItems` LookUp (the `powerapps-powerfx` skill, Rule 8). Write one picker, then copy its YAML and change the name and the column.
+Keep `Items` a plain `Choices(<List>.<PersonColumn>)`. The fix script derives search from it, and any other shape is left for a human. Without search text, `Choices` on a Person column returns only the first few dozen people of the directory, so the open list is a sample, not everyone (the `powerapps-powerfx` skill, Rule 24).
+
+The same picker without the patch, a non searchable combo fed by a text input:
+
+```yaml
+            - txt_S1_OwnerSearch:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  HintText: ="Type a name"
+                  X: =24
+                  Y: =60
+            - cmb_S1_SalesOwner:
+                Control: Classic/ComboBox@2.4.0
+                Properties:
+                  Items: =Choices(Deals.Sales_Owner, txt_S1_OwnerSearch.Text)
+                  IsSearchable: =false
+                  DisplayFields: =["DisplayName"]
+                  SelectMultiple: =false
+                  X: =24
+                  Y: =100
+```
+
+The fix script skips a combo whose `IsSearchable` is false, so this picker never needs the second import. The Save button writes the person with `Sales_Owner: cmb_S1_SalesOwner.Selected`, and a picker that pre-fills from an approvals row carries the cycle filter in its `DefaultSelectedItems` LookUp (the `powerapps-powerfx` skill, Rule 8). Write one picker, then copy its YAML and change the name and the column.
 
 The attachment form stack (`frm_Docs_Upload` holding `dc_Docs_Attachments` holding `att_Docs_Files`) has too many generated properties to write from nothing. Copy its YAML from an unpacked app that has one, or insert a form bound to the file index list in Studio once, keep only the attachments card, and pull the app into source. From then on it is source like everything else. The upload wiring is in the `powerapps-approvals-and-flows` skill.
 
@@ -105,7 +135,7 @@ The attachment form stack (`frm_Docs_Upload` holding `dc_Docs_Attachments` holdi
 Ship a helper script (`powerapps/app/app.ps1`) with two verbs:
 
 - `pack`: `pac canvas pack --msapp <App>_built.msapp --sources src --layout SourceCode`, then print the path.
-- `pull`: `pac canvas download` plus `pac canvas unpack`, guarded behind a `-Force` flag with a loud warning, because pull overwrites `src/` with the cloud copy.
+- `pull`: `pac canvas download --name <AppId>` plus `pac canvas unpack`, guarded behind a `-Force` flag with a loud warning, because pull overwrites `src/` with the cloud copy.
 
 The loop:
 
@@ -131,93 +161,41 @@ The canonical procedure. It updates the existing app in place, so the AppId, the
    pac solution import --path app.zip --async --max-async-wait-time 15 --publish-changes --force-overwrite
    ```
    Without the version bump the import reports success and applies nothing.
-4. People pickers now have no working search. Open the app in Studio for edit and confirm that a control you added is in the tree view, which proves your build loaded. Then Publish. If Studio shows nothing to save, change a property and change it back (typed, not Undo) first, because a publish with no edit does not save a new copy.
-5. Download the published app and fix it:
+4. The app is live for users now, and searchable people pickers have no working search. Do not pause here. Open the app in Studio for edit and confirm that a control you added is in the tree view, which proves your build loaded. Then Publish. If Studio shows nothing to save, change a property and change it back (typed, not Undo) first, because a publish with no edit does not save a new copy. If the publish dialog never appears and Studio only saves, publish that saved version from the maker portal instead: the app's Versions page, the new version, Publish this version.
+5. Download the published app and fix it. Pass the app id, not the display name, and check the file exists, not only the exit code:
    ```
-   pac canvas download --name "<App name>" --file-name live.msapp
+   pac canvas download --name <AppId> --file-name live.msapp --overwrite
    python scripts/fix_picker_search.py live.msapp fixed.msapp
    ```
-   If the script says the msapp still loads from YAML, step 4 did not happen. Expect one change per picker, because a Studio publish resets them all. `0 change(s)` here means the publish did not contain your build, so stop and do not import. The script writes no output file in that case.
+   `--name` matches partial display names, so a second app whose name contains this one ("TEST - Deal Review" next to "Deal Review") fails the download with "Multiple canvas apps matching". `pac canvas list` shows the id. If the script says the msapp still loads from YAML, step 4 did not happen. Expect one change per picker, because a Studio publish resets them all. `0 change(s)` here means the publish did not contain your build, so stop and do not import. The script writes no output file in that case.
 6. Swap `fixed.msapp` into the solution exactly as in step 3, bump `<Version>` again, and import.
 7. Verify. Download again (add `--overwrite`) and run `python scripts/fix_picker_search.py live.msapp` with no output file. Expect `0 change(s), 0 manual`. Then type a name into one picker in Play mode. A player still showing the old version needs the "You're using an old version, Refresh" banner clicked.
 
-An app with no people pickers stops after step 3.
+An app with no searchable people pickers (none at all, or only the two box kind) stops after step 3.
 
 What the script does, per `Classic/ComboBox` in `Controls/*.json`:
 
 - Reads the combo's own `Items: Choices(<List>.<PersonColumn>)` and writes `SearchItems: Choices(<List>.<PersonColumn>,<comboName>.SearchText)`. After a Studio publish every picker holds the template sample `Search(ComboBoxSample, Self.SearchText, Value1)`, which is why typing a name finds nobody and a saved person only shows after the dropdown is opened.
 - Leaves `SearchFields` alone. A picker that opens but filters to nothing as you type is searching `["Claims"]`, see the `powerapps-troubleshooting` skill.
-- Reports a combo whose `Items` is not a plain `Choices(List.Column)` as `MANUAL`. Those need their `SearchItems` written by hand into the same JSON.
+- Skips a combo with `IsSearchable` false.
+- Reports a searchable combo whose `Items` is not a plain `Choices(List.Column)` as `MANUAL`. Those need their `SearchItems` written by hand into the same JSON.
 - Without an output file it only reports. Exit code 0 means nothing to fix, 1 means changes or manual items, 2 means the msapp still loads from YAML.
 
 Notes:
 
 - An open Studio session can swallow a ship with every step reporting success. A Studio tab stayed open during an import. The import finished in under a minute instead of minutes, Studio then opened the old app, and the publish and the picker fix shipped the old app under a higher version number. The first picker fix reporting `0 change(s)` and the missing control in the tree view were the only clues. Re-importing the same build with Studio closed worked.
 - Before the first import, confirm whoever or whatever does step 4 can reach Studio and is signed in. Otherwise pickers stay broken until someone can.
-- Pickers are broken from step 3 until step 6 lands, a matter of minutes. On an app people are using, run steps 3 to 6 back to back in a quiet window.
+- Pickers are broken for every user from step 3 until step 6 lands, a matter of minutes if nothing stalls. On an app people are using, run steps 3 to 6 back to back in a quiet window, or use the two box picker and skip steps 4 to 6.
+- A script that runs these steps must check that each download produced a fresh file, not only the exit code. The exit code alone missed a failed download, and an older `live.msapp` left in the folder then gets fixed and shipped as if it were the new one.
 - Studio edits made after a ship live only in the cloud. Run `app.ps1 pull -Force` and commit before the next source edit, or the next ship overwrites them. The pull brings no `SearchItems` into source, which is correct.
 
 ## Small edits in Studio
 
-For a handful of formula changes, pasting into Studio is still the fastest path:
+A handful of formula changes can still be pasted into Studio and published (the procedure is in the `powerapps-build-playbook` skill, manual steps). Then pull the app into the repo (`app.ps1 pull -Force` on a branch) and commit before anyone edits source again. Run the fix script in report mode on the downloaded msapp while you have it. It settles whether picker search is still intact. For larger work, a restyle, a new panel, a batch of pickers, edit source and ship.
 
-1. The developer (or the AI assistant, see the `powerapps-build-playbook` skill) writes the exact property values, stated as "control X, property Y, paste this".
-2. A human pastes them into Studio, tests, publishes.
-3. Pull the app into the repo (`app.ps1 pull -Force` on a branch), commit, open a pull request.
+## Solutions, ownership, and test copies
 
-Nothing unconfirmed lands in git, and the repo is back in step with the cloud before anyone edits source again. Run the fix script in report mode on the downloaded msapp while you have it. It settles whether picker search is still intact.
-
-For larger work, a restyle, a new panel, a batch of pickers, edit source and ship.
-
-## Solutions: two containers
-
-Even without Dataverse tables, the app and the flows live in Dataverse solutions, because that is the unit Power Automate exports and imports. Keep two:
-
-- An app-only solution holding the canvas app and nothing else. This is what the ship procedure exports and imports.
-- A flow solution holding the flows and their connection references.
-
-Create the app-only solution once in the maker portal: Solutions, New solution, then Add existing, App, Canvas app. An app import can then never overwrite or reactivate a flow, and a flow edit cycle never drags a large msapp through export and import. Adding the app to a solution does not change the app or its AppId.
-
-The unpacked flow solution layout:
-
-```
-powerapps/flows/<SolutionName>/
-  Other/
-    Solution.xml            manifest: solution name, version, publisher, root components
-    Customizations.xml
-  Workflows/
-    <FlowName>-<GUID>.json           the flow definition (the code)
-    <FlowName>-<GUID>.json.data.xml  sidecar: name, type, state
-```
-
-The app solution has the same `Other/` plus `CanvasApps/<prefix>_<appname>_<hash>.meta.xml` and `CanvasApps/<prefix>_<appname>_<hash>_DocumentUri.msapp`. Gitignore that binary. The source is `Src/*.pa.yaml`.
-
-## What survives a delete and reimport, and what does not
-
-Sooner or later something has to be rebuilt: a new owner, a botched import, a move. Four facts decide whether that is an afternoon or a week.
-
-Deleting a solution deletes the container, not the contents. The app and every flow stay in the environment, still running, now sitting in the default solution. Deleting the solution and importing a fresh copy therefore updates the same components rather than recreating them, which is exactly what you do not want if the point was to recreate them. Delete the components explicitly first.
-
-Flows keep their GUID, the canvas app does not. `Customizations.xml` pins each flow as `<Workflow WorkflowId="{...}" Name="...">`, and import recreates the workflow record with that same id. Since a canvas app references its flows by id, the app's wiring survives a delete and reimport untouched, with no re-adding in the Power Automate pane. A canvas app gets a new app id, so its play URL changes, and every deep link built from it breaks. Grep the app source for the old id before you start, so you know how many buttons to repoint. A normal ship is an update, not a delete, and keeps the id.
-
-Connection references belong to whoever created them, and an import that touches one it does not own fails with a `WriteAccess` error naming a connection reference record. This is what stops a second account importing a solution built by the first. Delete the orphaned references first, or have the new owner import a solution whose references it can create fresh. Where a reference is shared with another app, leave it alone and give this solution its own instead.
-
-Import activates flows. A flow exported in a draft state comes back on, so a change you meant to stage lands live. Check the state of every flow after an import and turn back off anything that was meant to stay off.
-
-## Ownership: put the app under a service account
-
-An app owned by a person is a dependency on that person. When they change roles the flows stop, the emails stop, and nobody else can edit it. The pattern that holds: a service account owns the app and the flows, a security group of the developers is co-owner on both, and the flows run on the service account's connections so outgoing mail comes from the service rather than a person.
-
-Do it on day one. Retrofitting is a migration.
-
-The mechanics are two different jobs, and neither is self service.
-
-- Canvas app: `Set-AdminPowerAppOwner` from `Microsoft.PowerApps.Administration.PowerShell`, which needs a Power Platform admin. Re-share the previous owner as co-owner straight afterwards, otherwise they lose the access that `pac canvas download` depends on.
-- Solution aware flows: these are Dataverse records, so `Set-AdminFlowOwnerRole` does not apply. An administrator reassigns them in the Dataverse Processes list.
-
-Ownership and runtime identity are separate. Changing the owner moves a field and nothing else. The flows keep running on the old owner's connections until someone signs in as the service account and repoints each connection reference, and that is the step that actually gets a personal name off the emails.
-
-Solution aware flows have no "Run only users" panel, so do not go looking for one. Users of the app get run access through the app's own sharing.
+The two solutions the ship relies on (the app alone, the flows in their own), what survives a delete and reimport, how to delete a solution for real, moving ownership to a service account, and building a test copy of the app and flows all live in `references/solutions-and-ownership.md`.
 
 ## Verification checklist after any import
 
@@ -226,18 +204,18 @@ Solution aware flows have no "Run only users" panel, so do not go looking for on
 3. Formulas and errors panel: zero red.
 4. Click through the changed feature against real SharePoint data.
 5. Type a name into a people picker. If it finds nobody, finish the ship procedure from step 4.
-6. If a flow signature changed, remove and re-add the flow in the Power Automate pane (see the `powerapps-troubleshooting` skill, "received 9, expected 7-8").
+6. Remove and re-add a flow in the Power Automate pane only when its inputs or outputs changed (see the `powerapps-troubleshooting` skill, "received 9, expected 7-8"). After an import that changed no flow's inputs or outputs, the flows worked without it. If one looks stale in the pane, Refresh it, then Save and Publish.
 7. Every flow in the expected state, on or off, and connection references pointing at the right connections.
-8. After a command-line import, refresh a flow in the Power Automate pane if it looks stale, then Save and Publish. Do not remove and re-add every flow as routine.
-9. Have one normal user, not the owner and not the service account, reload the app and click a button that calls a flow. Then confirm a run by that user exists in the flow's history.
+8. Have one normal user, not the owner and not the service account, reload the app and click a button that calls a flow. Then confirm a run by that user exists in the flow's history.
 
-Step 9 exists because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. The cause was never found, and it has one recorded incident. So re-adding is the fix for a failed step 9, not a routine ship step. It was routine for a while and cost a quarter of an hour on every ship.
+Step 8 exists because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. The cause was never found, and it has one recorded incident. So re-adding is the fix for a failed step 8, not a routine ship step. It was routine for a while and cost a quarter of an hour on every ship.
 
 ## Driving Studio from a browser tool
 
 An agent with a browser tool can run the Studio steps of a ship by itself, once a person has signed in. An agent never types the password. These are what the tool does not tell you.
 
-- The Studio canvas and its panes sit in a cross origin frame. Accessibility trees, element search and page scripts see only the portal header around it, so work from screenshots and coordinates. Use a large viewport, 1600 by 1000 is enough, and take a new screenshot after anything that changes the layout.
+- The Studio canvas and its panes sit in a cross origin frame. Accessibility trees, element search and page scripts see only the portal header around it, so work from screenshots and coordinates. Keep the browser's own desktop viewport. An emulated 1600 by 1000 viewport left Studio unresponsive. Take a new screenshot after anything that changes the layout.
+- After Publish, the confirmation dialog can arrive late or never, and Studio then only saves. Read the app's Versions page in the maker portal. If the newest version is not the published one, use Publish this version there.
 - The screen lags behind your input, and more so while flows are out of the app and formulas are in error. A menu or list can appear 10 to 20 seconds after the click, and a screenshot can show the state before it. Clicks queue up and land later. Only click a target that a screenshot already shows, and never chain a click on a search result in the same batch as the search.
 - Studio opening read only with "you already have editing control elsewhere" is your own earlier session. Override takes it back. If the banner names someone else, stop and ask.
 - In the Power Automate pane, Add flow lists every flow in the environment, other apps' flows included. Search the exact name and see the single result before you click it.

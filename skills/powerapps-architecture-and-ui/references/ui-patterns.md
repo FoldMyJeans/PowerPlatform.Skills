@@ -23,7 +23,8 @@ DisplayMode: =If(ThisItem.n <= varDeal.Current_Step, DisplayMode.Edit, DisplayMo
 OnSelect: =Set(varViewStep, If(ThisItem.n = varDeal.Current_Step, 0, ThisItem.n))
 
 // any real move (the named Move buttons) changes the field AND resets the view
-Patch(Deals, varDeal, { Current_Step: varDeal.Current_Step + 1, Last_Updated_On: Now() });
+Patch(Deals, LookUp(Deals, ID = varDeal.ID),
+    { Current_Step: varDeal.Current_Step + 1, Last_Updated_On: Now() });
 Set(varDeal, LookUp(Deals, ID = varDeal.ID));
 Set(varViewStep, 0)
 ```

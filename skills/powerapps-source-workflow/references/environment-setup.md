@@ -52,7 +52,7 @@ Create a brand new connection instead, then repoint the connection reference at 
 ```powershell
 # Canvas app (ship it through its solution to keep the AppId, see references/source-workflow.md)
 pac canvas list
-pac canvas download --name "<App Display Name>" --file-name app.msapp --overwrite
+pac canvas download --name <AppId> --file-name app.msapp --overwrite   # the id, see below
 pac canvas unpack --msapp app.msapp --sources src --layout SourceCode
 pac canvas pack   --msapp built.msapp --sources src --layout SourceCode
 python scripts/fix_picker_search.py live.msapp fixed.msapp   # people picker search, after a ship
@@ -64,6 +64,8 @@ pac solution pack   --zipfile C:\temp\sol_build.zip --folder <repo-folder>
 pac solution import --path C:\temp\sol.zip --async --max-async-wait-time 8
 pac solution import --path C:\temp\app.zip --async --max-async-wait-time 15 --publish-changes --force-overwrite
 ```
+
+`pac canvas download --name` takes a display name or an app id, and a display name matches partially. Once two apps share a name fragment (a test copy called "TEST - Deal Review" next to "Deal Review"), the download fails with "Multiple canvas apps matching". Scripts pass the id from `pac canvas list`.
 
 Always use `--layout SourceCode` on canvas unpack. It produces the readable one file per screen YAML that diffs cleanly in git. The default is the Experimental layout, which emits `*.fx.yaml` files and a different tree, so one unpack without the flag against a repo whose history is SourceCode rewrites the whole thing.
 

@@ -82,7 +82,7 @@ Set(varSendNotification_Ready, true);
 Set(varSendNotification_TimerStart, false);
 
 // 6) TYPED DEFAULTS (patch safety, see the `powerapps-powerfx` skill)
-Set(varReviewDefault, Defaults(Approvals));
+Set(varApprovalDefault, Defaults(Approvals));
 
 // 7) THEME (see below)
 

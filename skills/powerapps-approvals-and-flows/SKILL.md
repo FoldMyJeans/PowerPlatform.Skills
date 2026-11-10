@@ -4,11 +4,14 @@ description: >-
   Build the approval engine, the permission model, and the Power Automate flows behind a
   canvas app: approval rows and cycles and returns, assigning approvers, the two layer access
   model (SharePoint permissions as real security, app gates as UX), per record permissions,
-  record locking, flow JSON anatomy, and the four proven flow shapes (create folders, upload
-  a file, notify people, scheduled sweep). Use whenever the user adds or debugs an approval
-  step, sets permissions, locks records, writes or edits a cloud flow, or wires a flow to the
-  app. Trigger on "add an approval", "approvers", "return the record", "permissions", "lock
-  the record", "write the flow", "notification flow", "folder flow", "flow JSON". Assumes
+  record locking, flow JSON anatomy, the four proven flow shapes (create folders, upload a
+  file, notify people, scheduled sweep), and repairing SharePoint data over REST without
+  re-running a flow. Use whenever the user adds or debugs an approval step, sets or audits
+  permissions, locks records, writes or edits a cloud flow, wires a flow to the app, or fixes
+  what a failed flow left behind. Trigger on "add an approval", "approvers", "return the
+  record", "permissions", "is this list secured", "lock the record", "write the flow",
+  "notification flow", "folder flow", "flow JSON", "Create file overwrites", "repair the
+  folder". Assumes
   SharePoint backed canvas apps on standard Microsoft 365 licensing, no Dataverse.
 ---
 
@@ -49,7 +52,8 @@ For creating flow skeletons and importing solutions (human clicks) use
 ## References in this skill
 
 - `references/approvals-and-permissions.md`: the approval engine end to end, and the two
-  layer access model including per record permissions, the drop box flow, locking, and
-  debugging permissions.
+  layer access model including checking what is really secured, per record permissions,
+  the drop box flow, locking, and debugging permissions.
 - `references/flows.md`: trigger and action anatomy, the four proven flow shapes, the
-  skeleton first method, solution registration, app wiring, and the activation time traps.
+  skeleton first method, editing live flows, solution registration, repairing data over
+  REST, app wiring, and the activation and runtime traps.

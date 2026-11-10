@@ -20,7 +20,8 @@ and commit, and back into an app. The whole app round trips, people pickers and 
 forms included, except one property: a people picker's search. Ship naively and every picker
 still opens and quietly finds nobody. Both answers are correct. Only one is available to you,
 and it comes with a procedure: ship through an app-only solution so the app keeps its id,
-publish once in Studio, and restore picker search with a script.
+publish once in Studio, and restore picker search with a script. Or build each picker so it
+needs no fix, at the cost of a second box.
 
 This repo is the second kind of answer, collected in one place. Where something genuinely
 needs Dataverse or a premium connector, it says so and gives the standard licence alternative
@@ -148,8 +149,8 @@ If the tool can browse or fetch a URL, give it the repo link and tell it which s
 for example `skills/powerapps-powerfx/SKILL.md`. If it cannot, open that `SKILL.md`, paste it
 in, and paste whichever file under `references/` it points you to.
 
-Grab one skill, not the set. The whole repo is around 43,000 tokens and will crowd out a chat
-window. A single `SKILL.md` plus one reference is closer to 2,000 to 4,000, which fits
+Grab one skill, not the set. The whole repo runs to tens of thousands of tokens and will
+crowd out a chat window. A single `SKILL.md` plus one reference is a few thousand, which fits
 anywhere. The skills table above tells you which one you want.
 
 What you lose without skill support is only the automatic part. A skill aware tool notices you
