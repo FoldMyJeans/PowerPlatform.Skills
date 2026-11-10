@@ -30,6 +30,8 @@ behaves wrongly and the Formulas panel is clean and the flow run history is gree
 
 ## Build and toolchain
 
+A load error (PA1001, PA2108, PA1011) comes first. Nothing else can be checked or fixed, the picker fix included, until Studio opens the app.
+
 | Symptom | Cause | Fix | Owning skill |
 |---|---|---|---|
 | `'pac' is not recognized` | Fresh shell predates the CLI install's PATH change | Refresh PATH: `$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")`. Or install the CLI | `powerapps-source-workflow` |
@@ -107,7 +109,7 @@ behaves wrongly and the Formulas panel is clean and the flow run history is gree
 | Folder creation flow fails on re-run | `CreateNewFolder` errors when the folder exists | `runAfter` accepting Succeeded and Failed, plus the idempotency flag | `powerapps-approvals-and-flows` |
 | Choice value patch silently does nothing or errors | The value drifted from what SharePoint actually has | Confirm current Choice values in SharePoint settings before coding against them | `powerapps-sharepoint-data` |
 | `WorkflowOperationParametersExtraParameter`, "no definition for parameter 'overwrite'", on trying to turn a flow on | The SharePoint `CreateFile` action retired the `overwrite` parameter | Delete `overwrite` from the action's parameters. Then test a same name upload, it replaced the file as a new version on one build and reportedly errors with chunked transfer on | `powerapps-approvals-and-flows` |
-| An index file or list a flow maintains loses entries or shows only the latest | "Create file" with an existing name overwrites the file as a new version, it does not add one | Upsert the index (read, merge, write), never append by creating a file of the same name | `powerapps-approvals-and-flows` |
+| An index file or list a flow maintains loses entries or shows only the latest | "Create file" with an existing name can overwrite the file as a new version instead of adding one | Upsert the index (read, merge, write). For uploads that must both survive, timestamp the name. Same name behaviour and the `%` in names trap are in the `powerapps-approvals-and-flows` skill, flows.md traps | `powerapps-approvals-and-flows` |
 | `InvalidTemplate`, `createArray` "invoked with no parameters" | `createArray()` called with zero arguments in a flow expression | `createArray()` needs at least one item. Seed with `createArray('')` and filter blanks from the result | `powerapps-approvals-and-flows` |
 | A control will not drop into a gallery when dragged in the tree view | Tree view drag and drop onto a gallery template is unreliable, it lands as a sibling or refuses outright | Select the gallery's template on the canvas first, then Insert the control. It lands inside the template | `powerapps-architecture-and-ui` |
 | Red errors on a button nobody edited, right after re-adding an unrelated flow | The app cached the old signature of a flow whose Response outputs changed, and the re-add refreshed it to the real one | Read that flow's Response action body first. Then remove and re-add the flow in the Power Automate pane | `powerapps-powerfx` Rule 19 |

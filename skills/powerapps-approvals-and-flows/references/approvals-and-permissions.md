@@ -65,7 +65,7 @@ A return is the record moving backward with history kept:
 1. The first Return bounces the record. Do not wait for the other approvers.
 2. Remaining Pending rows of the cycle are auto closed in one batch Patch (decision Returned, with an auto comment like "Auto-closed due to a return in this cycle" so status surfacing can filter them out). The formula is the `powerapps-powerfx` skill Rule 26.
 3. The cycle counter on the record increments by one.
-4. The record's step moves back to the fix point (intake or drafting), with the return reason stored on the record.
+4. The record's step moves back to the fix point (intake or drafting), with the return reason stored on the record (`Return_Reason`). The returning approver's own row keeps the reason they typed as its comment.
 5. Resubmission assigns fresh approver rows under the new cycle number.
 
 Because every query filters on the current cycle, the new round starts clean while the full history of prior cycles stays for audit. A manual "reset cycle" button (senior roles only) covers the case where approvers were assigned wrongly before anyone decided.
@@ -147,7 +147,7 @@ GET _api/web/roledefinitions?$select=Id,Name
 
 `associatedownergroup` returns the site's built in Owners group, not everyone who happens to hold Full Control. A security group added straight to the site with Full Control is not a member of that group, so every item level grant built on `associatedownergroup` skips it. Those people keep full access to the site while losing access to each locked item, which reads as a permissions bug and is not one. Put admins and service accounts inside the Owners group itself rather than granting them Full Control directly.
 
-Pick the grant level per list, not by habit. A list the app only reads for gating (an approvals list whose rows a step gate counts) should grant the record team Read, not Edit. Read keeps the rows visible so the count stays correct, and stops a curious user editing a decision straight in SharePoint. Locking such a list away from the team entirely is worse than leaving it open, because the app's count then returns zero and the gate opens.
+Pick the grant level per list, not by habit. A list the app reads for gating (an approvals list whose rows a step gate counts) should grant the record team Read, not Edit, and only the people assigned a row Contribute (the grid above). Read keeps the rows visible so the count stays correct, and stops a curious user editing a decision straight in SharePoint. Locking such a list away from the team entirely is worse than leaving it open, because the app's count then returns zero and the gate opens.
 
 ### Breaking inheritance again does not remove anybody
 

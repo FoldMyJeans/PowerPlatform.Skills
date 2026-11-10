@@ -26,7 +26,7 @@ An AI assistant (or a remote developer) can write the YAML, the Power Fx, and th
 
 | # | Step | Notes |
 |---|---|---|
-| 1 | Import the first packed .msapp | Apps, Import canvas app, from this device. The "validate by opening in Studio" banner on a YAML packed app is expected |
+| 1 | Import the first packed .msapp | In Studio, Import app from file, pick the .msapp, then Save it under the app's name. The maker portal's Import canvas app takes an exported package (.zip), not an .msapp. The "validate by opening in Studio" banner on a YAML packed app is expected |
 | 2 | On first open, add the data sources | Add each SharePoint list once. Survives re-imports |
 | 3 | Create the app-only solution | Solutions, New solution, then Add existing, App, Canvas app. The app goes in alone, flows get their own solution. Every ship after this is command line and keeps the AppId (the `powerapps-source-workflow` skill) |
 | 4 | Run App.OnStart | Tree view, App, three dots, Run OnStart. Do it after every import and every OnStart edit |

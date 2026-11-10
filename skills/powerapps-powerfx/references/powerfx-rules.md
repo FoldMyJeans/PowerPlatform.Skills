@@ -1,6 +1,6 @@
 # Power Fx rules and gotchas. The non negotiable physics
 
-Every one of these cost real debugging time on a real build. They are written as wrong versus right so they can be applied mechanically. When code violates one of these, fix it and cite the rule.
+Every one of these cost real debugging time on a real build. They are written as wrong versus right so they can be applied mechanically. When code violates one of these, fix it and cite the rule. Rules 14 to 21 and 27 (controls, flow calls, URLs) live in `references/controls-and-flow-calls.md`. Rules keep the number they were born with, so numbers jump inside a section.
 
 ---
 
@@ -99,15 +99,17 @@ A sequence of patches followed by an unconditional green toast is a silent failu
 
 ```
 // WRONG: ForAll reads Approvals and patches Approvals inside the loop. Studio rejects it
-ForAll(Filter(Approvals, Deal.Id = varDeal.ID && Decision.Value = "Pending") As r,
+ForAll(Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
+        && Review_Cycle = varDeal.Review_Cycle && Decision.Value = "Pending") As r,
     Patch(Approvals, r, { Decision: { Value: "Returned" } }))
 
 // RIGHT: base rows plus a table of changes, one call
 With({ rows: Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
                     && Review_Cycle = varDeal.Review_Cycle && Decision.Value = "Pending") },
     Patch(Approvals, rows,
-        ForAll(rows As r, { Decision: { Value: "Returned" },
-            Comment: "Auto-closed due to a return in this cycle", Decided_On: Now() })))
+        ForAll(rows As r, { Decision: { Value: "Returned" }, Decided_On: Now(),
+            Comment: If(Lower(Coalesce(r.Assigned_To.Email, "")) = varUserEmailLower,
+                Trim(txt_ReturnReason.Text), "Auto-closed due to a return in this cycle") })))
 ```
 
 The batch form is also one round trip instead of one per row. The return loop's auto close in the `powerapps-approvals-and-flows` skill is this shape.
@@ -194,87 +196,6 @@ IfError(Patch(Deals, LookUp(Deals, ID = varDeal.ID), { Last_Updated_On: Now() })
 IfError(Patch(Deals, LookUp(Deals, ID = varDeal.ID), { Last_Updated_On: Now() }); true,
     Notify("Save failed: " & FirstError.Message, NotificationType.Error))
 ```
-
-## Controls
-
-### Rule 14: `ResetForm()` for attachment controls, not `Reset()`
-
-```
-// WRONG: file stays in the browser cache, second upload resends the first file
-Reset(att_Step2_Files)
-
-// RIGHT: clears the form context and the file cache
-ResetForm(frm_Step2_MeetingNotesUpload)
-```
-
-`Reset()` per control is still right for the plain text inputs next to the upload (link name, link URL). Only the attachment control needs its parent form reset.
-
-### Rule 15: HtmlViewer is display only
-
-It renders HTML beautifully and cannot fire Power Fx on click. Anything clickable is built from real controls: a horizontal gallery of buttons, or transparent rectangles overlaid on the HTML tiles as click targets (`htm_StepTile` for the looks, `rec_StepClick` on top for the click).
-
-### Rule 16: No control chains inside HtmlViewer text
-
-An HtmlViewer whose `HtmlText` references another control's property, which itself depends back on the HtmlViewer, throws "Circular dependency" at load. Compute the text in OnVisible, store it in a variable, reference the variable. Referencing variables and collections inside `HtmlText` is fine.
-
-### Rule 17: Theme through the variable
-
-`Fill: =varTheme.Primary`, never a hardcoded RGBA. Exceptions: CSS inside HtmlViewer, deliberate gradients. After editing OnStart, Run OnStart in Studio or every themed control renders blank.
-
-## Flows from the app
-
-### Rule 18: `.Run()` argument order follows the trigger's required array
-
-Inputs appear in the flow JSON as `text`, `text_1`, `text_2`, `number`, `file`. The app passes them positionally in the order of the trigger schema's `required` array, optional inputs (like a file) last. Full anatomy in the `powerapps-approvals-and-flows` skill.
-
-### Rule 19: "received 9, expected 7-8" is a cache, not your code
-
-The app stored an old copy of the flow's signature. Studio: Power Automate pane, remove the flow, re-add it. Then the argument count matches. Any time a flow's inputs change, every app using it needs this refresh.
-
-The cache holds the outputs too, not just the inputs, and that version is much harder to recognise. Change what a flow's Response action returns and the app keeps compiling against output names that no longer exist, so red errors appear on a button nobody edited, often right after some unrelated flow was re-added and quietly refreshed the signature. Same fix, remove and re-add. The diagnostic order is what matters: when a formula that calls a flow suddenly errors, read the flow's Response action body before changing one character of the formula.
-
-### Rule 20: Wrap flow calls, then re-fetch
-
-```
-IfError(
-    With({ result: CreateFolder.Run(varDeal.Customer, varDeal.Deal_Reference,
-                                    varDeal.Route.Value, Text(varDeal.ID)) },
-        Patch(Deals, LookUp(Deals, ID = varDeal.ID),
-            { Folders_Created: true, Folder_Link: result.folderpath })
-    );
-    Set(varDeal, LookUp(Deals, ID = varDeal.ID));
-    Notify("Folder created.", NotificationType.Success),
-    Notify("Could not create the folder. Check the flow run history.", NotificationType.Error)
-)
-```
-
-`With` captures the flow's response record so the returned fields can be used in the same expression. Here the app writes the returned values itself, so the re-fetch after its own Patch is enough. When the flow writes the row, Rule 27 applies.
-
-### Rule 27: After a flow writes a row, `Refresh` before you `LookUp`
-
-```
-// WRONG: the flow stamped the row, the app reads its own cached copy of it
-NotifyApprovers.Run(varDeal.ID, varAppLink); Set(varDeal, LookUp(Deals, ID = varDeal.ID));
-
-// RIGHT
-NotifyApprovers.Run(varDeal.ID, varAppLink); Refresh(Deals); Set(varDeal, LookUp(Deals, ID = varDeal.ID));
-```
-
-The app's own Patch updates its cache, a flow's write does not. A LookUp straight after the flow returns the row as it was before the flow ran. On one build that stale read decided whether to send the next email, and the email was skipped with nothing in red.
-
-## URLs
-
-### Rule 21: Encode anything user named that goes into a URL
-
-```
-// WRONG: breaks on spaces and special characters
-Launch(".../Shared Documents/" & varDeal.Customer & ...)
-
-// RIGHT
-Launch(".../Shared%20Documents/" & EncodeUrlComponent(varDeal.Customer) & ...)
-```
-
-Client names contain spaces, ampersands and apostrophes. Flow side string building that only replaces spaces with %20 will still break on `&` and `'`, so treat cleanup of those characters as part of saving the name.
 
 ## Write conflicts
 

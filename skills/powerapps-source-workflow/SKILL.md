@@ -36,14 +36,25 @@ msapp with `scripts/fix_picker_search.py` after every ship, or build the picker 
 searchable combo fed by a text input, which needs no fix. Every other formula survives a
 source ship.
 
+## Pick the path
+
+| Change | Path |
+|---|---|
+| A handful of formula edits | Paste in Studio, publish, pull into the repo (step 6) |
+| New controls, a restyle, anything in more than a few places | Edit source and ship (steps 1 to 5) |
+| The app has searchable Classic people pickers | Every source ship also runs the picker fix. Or switch them to the two box picker once |
+| A brand new app, never in the cloud | First import in Studio, data sources, then the app-only solution (the `powerapps-build-playbook` skill, manual steps). Every ship after that follows this skill |
+
 ## Workflow
 
 1. Start from source that matches the live app. If the repo is not current, or the app was
    built in Studio, `pac canvas download` then `pac canvas unpack --layout SourceCode`.
 2. Edit `Src/*.pa.yaml` against the source tree and anatomy in `references/source-workflow.md`.
-   Pack with `pac canvas pack --sources <src> --msapp build.msapp`.
-3. Before a big ship, load the msapp into a throwaway copy in Studio (Import app from file,
-   never Save). Pack does not validate property names, YAML syntax, or Power Fx.
+   Pack with `pac canvas pack --sources <src> --msapp build.msapp --layout SourceCode`.
+3. Before every ship, load the msapp into a throwaway copy in Studio (Import app from file,
+   never Save). Pack does not validate property names, YAML syntax, or Power Fx. Clear any
+   load error (PA1001, PA2108, PA1011) before anything else, the picker fix needs Studio to
+   open and publish the app.
 4. Ship through the app-only solution, keeping the AppId. The canonical procedure is
    "Shipping from source" in `references/source-workflow.md`. In short:
    - Close every Studio tab of the app first. Export the app solution, swap in the build

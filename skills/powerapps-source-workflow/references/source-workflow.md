@@ -136,7 +136,7 @@ The attachment form stack (`frm_Docs_Upload` holding `dc_Docs_Attachments` holdi
 
 ## The dev loop
 
-Ship a helper script (`powerapps/app/app.ps1`) with two verbs:
+Keep a small helper script in the app repo (`powerapps/app/app.ps1`). You write it, it is not part of this skill. Two verbs:
 
 - `pack`: `pac canvas pack --msapp <App>_built.msapp --sources src --layout SourceCode`, then print the path.
 - `pull`: `pac canvas download --name <AppId>` plus `pac canvas unpack`, guarded behind a `-Force` flag with a loud warning, because pull overwrites `src/` with the cloud copy.
@@ -165,8 +165,8 @@ On first ever load the data connections must be added once inside Studio (add th
 The canonical procedure. It updates the existing app in place, so the AppId, the play URL, and every deep link stay the same. Run the fix script by its path inside this skill folder. It needs Python 3 and nothing else.
 
 1. The app lives alone in an app-only solution. Flows live in their own solution, so an app import never touches a flow (see Solutions below).
-2. Start from source pulled from the live app (`pac canvas download`, then `pac canvas unpack --layout SourceCode`) unless the repo is already current. Edit `Src/*.pa.yaml`, then `pac canvas pack --sources <src> --msapp build.msapp`.
-3. Close every Studio tab of the app, yours and anyone else's. Then `pac solution export --name <AppSolution> --path app.zip`. Unzip it. Replace `CanvasApps/<name>_DocumentUri.msapp` with `build.msapp`. Bump `<Version>` in `solution.xml` at the zip root. Zip the folder contents (not the folder itself) back to `app.zip`, then import:
+2. Start from source pulled from the live app (`pac canvas download`, then `pac canvas unpack --layout SourceCode`) unless the repo is already current. Edit `Src/*.pa.yaml`, then `pac canvas pack --sources <src> --msapp build.msapp --layout SourceCode`.
+3. Close every Studio tab of the app, yours and anyone else's. Then `pac solution export --name <AppSolution> --path app.zip`. Unzip it. Replace `CanvasApps/<name>_DocumentUri.msapp` with `build.msapp`. Bump `<Version>` in `solution.xml` at the zip root. Zip the folder contents (not the folder itself) back to `app.zip` (`Compress-Archive -Path .\app\* -DestinationPath app.zip -Force`), then import:
    ```
    pac solution import --path app.zip --async --max-async-wait-time 15 --publish-changes --force-overwrite
    ```
