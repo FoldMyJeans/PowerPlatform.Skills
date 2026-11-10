@@ -6,7 +6,7 @@ How a canvas app becomes text you can edit, how it gets back into the cloud with
 
 ## What pack can and cannot do
 
-`pac canvas pack` and `unpack` are a deprecated preview feature. Microsoft's own docs say the generated `.pa.yaml` is read only, for reviewing changes, and the supported source control path (Power Platform Git Integration) requires Dataverse.
+`pac canvas pack` and `unpack` are a deprecated preview feature. The pac reference page says so and points at Power Platform Git Integration, which needs Managed Environments (premium). Microsoft's docs also still call the generated `.pa.yaml` read only, though pac 2.7 (May 2026) added the `SourceCode` layout this skill uses and the canvas authoring MCP pushes pa.yaml into Studio (below). No removal date has been announced. Use `--layout SourceCode` explicitly, because the default is still the deprecated Experimental layout.
 
 In practice the whole app round trips. `pac canvas pack --sources <src> --msapp app.msapp` packs apps that contain `Classic/ComboBox` people pickers and the attachment form stack (`Form` plus `TypedDataCard` variant ClassicAttachmentsEdit plus `Attachments`). Every formula survives a source ship except one.
 
@@ -19,10 +19,14 @@ The combo's `SearchItems` property cannot live in source:
 - Putting the search text into `Items` does not help, as `Choices(Deals.Sales_Owner, Self.SearchText)` or with the combo's own name. The template `SearchItems` still wins.
 - The `.msapr` sidecar holds the last Studio compiled `Controls/*.json`, the correct `SearchItems` included. Studio and the player rebuild from the YAML and drop it.
 
-So never try to fix picker search in YAML or in Studio. Pick one of two ways out:
+The canvas authoring MCP has the same problem. Microsoft confirmed on the power-platform-skills repo that the designer sets a hidden `SearchItems` that `compile_canvas` does not trigger, and open issues there report searchable Classic combos going blank after a compile, reaching production through a managed solution.
+
+So never try to fix picker search in YAML or in Studio. Pick one of two proven ways out:
 
 - Patch it after the ship. `scripts/fix_picker_search.py` in this skill rewrites `SearchItems` in the published msapp (Shipping from source below). One combo per picker, looks like any picker, costs a second import on every ship.
 - Do not make the combo searchable. Set `IsSearchable: =false` on the combo and put a classic text input next to it, with the combo's `Items: =Choices(Deals.Sales_Owner, txt_S1_OwnerSearch.Text)`. The text input does the search over the whole directory, the combo shows and selects the person, and it ships from source with no patch. The cost is a second box per picker, which some teams turn down for looks.
+
+Microsoft's own suggestion is the modern combo box (`ModernCombobox`), which has no `SearchItems` or `SearchFields` at all. Its docs say nothing about SharePoint person columns or directory search, and it is not proven on this stack. Test it on one picker before building around it.
 
 Two msapp states matter for the patch:
 
@@ -146,7 +150,7 @@ The loop:
 5. Open the Formulas and errors panel and clear every red error.
 6. Fix in YAML, repack, repeat. When it is clean, ship it with the procedure below.
 
-The critical mindset: pack success is not correctness. Pack does not validate property names, YAML syntax, or Power Fx. A misspelled property or a broken block scalar packs fine and fails only when Studio loads the app. `pac canvas validate` still appears in `pac canvas` help, but on pac 2.7.4 it answers "'pac canvas validate' is no longer supported". Loading the msapp in Studio is the real check, so do it before every big ship.
+The critical mindset: pack success is not correctness. Pack does not validate property names, YAML syntax, or Power Fx. A misspelled property or a broken block scalar packs fine and fails only when Studio loads the app. `pac canvas validate` was deprecated in pac 2.6 (April 2026). It still appears in `pac canvas` help, but on pac 2.7.4 it answers "'pac canvas validate' is no longer supported". Loading the msapp in Studio is the real check, so do it before every big ship.
 
 One YAML trap is cheap to catch before packing. A plain scalar holding `: ` passes pack and breaks the app (the anatomy rules above). This finds every one, and should print nothing:
 
@@ -215,6 +219,17 @@ The two solutions the ship relies on (the app alone, the flows in their own), wh
 8. Have one normal user, not the owner and not the service account, reload the app and click a button that calls a flow. Then confirm a run by that user exists in the flow's history.
 
 Step 8 exists because of one failure that hides from every owner. After a day of command-line imports, flow calls from the published app were rejected for every non-owner before a run existed, so the run history stayed clean and the buttons only showed a generic error. The owner and the service account kept working everywhere, in Studio and in the published app, so every test the builders ran passed. It surfaced days later in front of users. Removing and re-adding the flows and publishing from Studio fixed it within minutes. The cause was never found, and it has one recorded incident. So re-adding is the fix for a failed step 8, not a routine ship step. It was routine for a while and cost a quarter of an hour on every ship.
+
+## The canvas authoring MCP, the other way in
+
+Microsoft's canvas authoring MCP server (the `canvas-apps` plugin in the microsoft/power-platform-skills repo, generally available since September 2026) edits a live Studio session from an agent: `sync_canvas` pulls the open app into local pa.yaml, `compile_canvas` pushes edited pa.yaml back, and `describe_control` returns the real property names and versions for a control. Its docs list no premium licence, Managed Environment or Dataverse requirement. It needs the .NET 10 SDK, an app already saved once in Studio, coauthoring turned on, and the Studio tab kept open while it works.
+
+Where it fits next to pack and ship:
+
+- It edits the app in place in Studio, so the AppId never changes and there is no solution import. Save and Publish in Studio afterwards, then pull into the repo as after any Studio edit.
+- `describe_control` replaces guessing property names and control versions from memory (the `AccessibleLabel` and modern rename traps above).
+- Classic people pickers break the same way (above), and `sync_canvas` has been reported to drop the hidden data field children that give a Classic combo its Person layout. Use the two box picker, or patch the published msapp as in the ship procedure.
+- A big rebuild, a restyle across every screen, or an app nobody can keep a Studio tab open for, still goes through pack and ship.
 
 ## Driving Studio from a browser tool
 

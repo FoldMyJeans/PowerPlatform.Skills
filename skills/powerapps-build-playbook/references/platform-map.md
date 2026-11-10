@@ -16,7 +16,7 @@ Every app built with this playbook uses the same five pieces:
 | Automation | Power Automate cloud flows | Folder creation, file uploads, email notifications. |
 | Identity | Microsoft Entra ID | Who the user is. `User().Email` drives every permission check. |
 
-Email goes out through the Office 365 Outlook connector (Send an email V2), sent as the person who clicks the button. Microsoft Approvals in Teams is an optional upgrade for executive sign off.
+Email goes out through the Office 365 Outlook connector (Send an email V2), as whichever identity the flow's Outlook connection is set to: the flow's own connection by default, or the person who clicked when the connection is set to invoker (the `powerapps-approvals-and-flows` skill). Microsoft Approvals in Teams is an optional upgrade for executive sign off.
 
 ```mermaid
 flowchart TD
@@ -45,7 +45,8 @@ Dataverse is the licensed premium database. SharePoint lists are included in sta
 
 The trade offs you accept:
 
-- No Power Platform Git Integration. That supported source control path requires the app to live in a Dataverse solution with Dataverse as the backing store. Without it, source control is the pac CLI workflow described in the `powerapps-source-workflow` skill, which ships a packed app through an app-only solution.
+- No Power Platform Git Integration, no pipelines, no environment routing. All three need Managed Environments, a premium governance feature, on every environment involved. The app's data source does not matter, a SharePoint backed app in a solution would qualify on a managed environment. Without them, source control is the pac CLI workflow (or the canvas authoring MCP) described in the `powerapps-source-workflow` skill, and shipping is solution export and import from the command line.
+- No developer environments to build in. Unmanaged developer environments can no longer be created from 2026-11-15 and are suspended from 2026-12-15, and running apps or flows in the managed kind needs premium. Build in the default environment or a production or sandbox environment, and keep a test copy next to production (the `powerapps-source-workflow` skill).
 - Delegation limits. SharePoint queries in Power Fx are only partly delegable. Person column filters are non delegable. Keep hot lists small (approvals, roles) and design dashboards so the non delegable parts run over small filtered sets.
 - No Business Process Flows. Multi step processes with branching are hand built with containers and a step number column. That is exactly what the patterns in this playbook do.
 

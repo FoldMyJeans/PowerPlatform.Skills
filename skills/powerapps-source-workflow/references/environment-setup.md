@@ -7,7 +7,7 @@ One time setup for a Windows machine. After this, the daily loop is one command.
 ## Install
 
 1. Git. https://git-scm.com/download/win
-2. Power Platform CLI (`pac`). https://aka.ms/PowerPlatformCLI
+2. Power Platform CLI (`pac`), 2.12 or later. https://aka.ms/PowerPlatformCLI. Before 2.12, `pac canvas list` and `pac canvas download` read only the first page of apps and could miss the one you asked for.
 3. VS Code (or any editor). VS Code is the viewer, diff tool, and search tool. It is not the app IDE, Power Apps Studio is.
 4. Optional: GitHub CLI (`gh`) if you want to open and merge pull requests from the terminal.
 

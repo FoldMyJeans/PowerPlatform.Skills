@@ -10,7 +10,8 @@ description: >-
   pickers (Classic ComboBox) that show blank rows or find nobody after an import. Trigger on
   "unpack the msapp", "pack the app", "ship the app from source", "pac canvas pack",
   "pac canvas download", "PA2108", "PA1001", "SearchItems", "people picker search broken",
-  "edit the pa.yaml", "export the canvas app", "set up pac", "pull the app into the repo".
+  "edit the pa.yaml", "export the canvas app", "set up pac", "pull the app into the repo",
+  "canvas authoring MCP", "compile_canvas".
   Assumes SharePoint backed canvas apps on standard Microsoft 365 licensing, no Dataverse.
 ---
 
@@ -73,8 +74,8 @@ source ship.
 
 - `references/source-workflow.md`: what pack can and cannot carry, the two ways out for
   picker search, the source tree, pa.yaml anatomy with people picker examples, the dev loop,
-  the shipping procedure, small Studio edits, the verification checklist, and driving Studio
-  from a browser tool.
+  the shipping procedure, small Studio edits, the verification checklist, where the canvas
+  authoring MCP fits, and driving Studio from a browser tool.
 - `references/solutions-and-ownership.md`: the app-only and flow solutions, what survives a
   delete and reimport, deleting a solution for real, moving ownership to a service account,
   and generating a test copy of the app and flows.

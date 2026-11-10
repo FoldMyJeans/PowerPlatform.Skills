@@ -141,7 +141,7 @@ Cache `Set(varUserEmailLower, Lower(User().Email))` once in OnStart and again in
 
 ### Rule 24: `Choices` on a Person column needs search text to reach the directory
 
-`Choices(Deals.Sales_Owner)` returns only the first few dozen people (about 28 on a real tenant), not the directory. `Choices(Deals.Sales_Owner, "jordan")` searches the whole directory. So a people picker with no search text lists a sample, and a `LookUp(Choices(Deals.Sales_Owner), ...)` can only find someone inside that sample. To find a person, pass text. That search text is also what breaks in a people picker shipped from source, see the `powerapps-source-workflow` skill.
+`Choices(Deals.Sales_Owner)` returns only the first few dozen people (about 28 on a real tenant), not the directory. `Choices(Deals.Sales_Owner, txt_S1_OwnerSearch.Text)` searches the whole directory for the typed text. So a people picker with no search text lists a sample, and a `LookUp(Choices(Deals.Sales_Owner), ...)` can only find someone inside that sample. To find a person, pass text. That search text is also what breaks in a people picker shipped from source, see the `powerapps-source-workflow` skill.
 
 ## Type system traps
 
@@ -172,14 +172,14 @@ Concat(steps As s, s.n & ". " & s.lbl, Char(10))
 LookUp(steps As s, s.n = cur).lbl
 ```
 
-### Rule 13: Modern and Classic text inputs read differently
+### Rule 13: Read a text input with `.Text`, in either family
 
 | Family | YAML identifier | Read the typed value |
 |---|---|---|
 | Classic | `Classic/TextInput@2.3.2` | `txt_Foo.Text` |
-| Modern | `TextInput` (modern, copy the version from your unpacked source) | `txt_Foo.Value` |
+| Modern | `ModernTextInput@1.0.0` (the version moves, copy it from your unpacked source) | `txt_Foo.Text` |
 
-Every example in these skills uses the Classic input and reads `.Text`. Reading the property of the other family fails with a name not recognized error, so check the control family in the YAML before you rewrite the formula. If Studio offers to upgrade a classic control to modern, every reference in the app must be migrated in the same pass: DisplayMode formulas, patches, validation, HtmlViewer logic.
+Neither has a `.Value` output, so a formula reading `.Value` fails with a name not recognized error. The modern controls were refreshed from February 2026 with renamed properties (`FontColor` to `Color`, `FontSize` to `Size`) and enum values (`Align.Left`), and the modern text input's `OnChange` now fires on leaving the box. If Studio offers to update or upgrade a control, migrate every reference to it in the same pass: DisplayMode formulas, patches, validation, HtmlViewer logic, and any YAML generator that writes it.
 
 ### Rule 25: IfError's fallback must match the value's type
 

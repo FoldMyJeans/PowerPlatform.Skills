@@ -8,13 +8,13 @@ Standard Microsoft 365 licensing, no Dataverse, no premium connectors.
 Internal business apps get built on whatever licence the company already has, and for most
 companies that is Microsoft 365 with no Power Platform add on. SharePoint lists instead of
 Dataverse. Standard connectors only. No supported source control, because Power Platform Git
-Integration requires Dataverse.
+Integration is a Managed Environments feature, which is premium.
 
 Almost everything written about Power Platform assumes the tier above that. So the answer you
 find is often the answer for a licence you do not have.
 
 Here is what that looks like. You want the app in git so changes are reviewable. The
-documented answer is Git Integration, and it needs Dataverse. The answer available on your
+documented answer is Git Integration, and it needs Managed Environments. The answer available on your
 licence is `pac canvas unpack` and `pack`, which turn the app into readable YAML you can diff
 and commit, and back into an app. The whole app round trips, people pickers and attachment
 forms included, except one property: a people picker's search. Ship naively and every picker

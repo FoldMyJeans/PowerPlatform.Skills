@@ -123,7 +123,7 @@ If(
 
 The `view` parameter refinement: the email can force which step view the recipient lands on, as a local only overlay that patches `varDeal` in memory (never SharePoint), so an approver clicking an approval email lands on the approval panel even if the live step has moved. Locked records skip everything and land on Home.
 
-The app play URL that emails point at comes from the maker portal (Apps, Details, Web link). It is environment specific. Buttons that pass it to flows must carry the real URL, a placeholder here is the classic dead email link bug.
+The app play URL that emails point at comes from the maker portal (Apps, Details, Web link). It is environment specific, and it carries the environment id (`/play/e/<environmentId>/a/<appId>`). Keep it whole: from May 2026 the Power Apps mobile app opens a canvas deep link only if it includes the environment id. Buttons that pass it to flows must carry the real URL, a placeholder here is the classic dead email link bug.
 
 ## scr.OnVisible: the data sync point
 
