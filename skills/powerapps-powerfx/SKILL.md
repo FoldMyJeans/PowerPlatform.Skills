@@ -14,7 +14,7 @@ description: >-
 
 # Power Fx rules
 
-This skill owns every Power Fx formula. The rules in `references/powerfx-rules.md` are non
+This skill owns every Power Fx formula. The numbered rules in its references are non
 negotiable physics, each written as wrong versus right code.
 
 ## When to use
@@ -27,10 +27,11 @@ and column design use `powerapps-sharepoint-data`. For flow definitions use
 
 ## Workflow
 
-1. Before writing, load `references/powerfx-rules.md` and find the rules the formula
-   touches. Writing to SharePoint: rules 1 to 7 and 26. Reading and querying: 8 to 10 and
-   24. Type traps: 11 to 13 and 25. Controls: 14 to 17. Flow calls: 18 to 20 and 27. URLs:
-   21. Write conflicts: 22. Verification: 23.
+1. Before writing, find the rules the formula touches and load the file that holds them.
+   `references/powerfx-rules.md`: writing to SharePoint (1 to 7, 26), reading and querying
+   (8 to 10, 24), type traps (11 to 13, 25), write conflicts (22), verification (23).
+   `references/controls-and-flow-calls.md`: controls (14 to 17), flow calls (18 to 20, 27),
+   URLs (21).
 2. Before coding against a Choice column's values, ask the user to paste the current values
    from SharePoint settings. Choice options live in the column configuration and drift.
 3. Deliver the complete, paste ready formula labeled with control and property. If a new
@@ -48,4 +49,6 @@ and column design use `powerapps-sharepoint-data`. For flow definitions use
 
 ## References in this skill
 
-- `references/powerfx-rules.md`: every rule with wrong versus right code for each.
+- `references/powerfx-rules.md`: the data rules, writing, reading, types, write conflicts,
+  verification, with wrong versus right code for each.
+- `references/controls-and-flow-calls.md`: the control, flow call, and URL rules.

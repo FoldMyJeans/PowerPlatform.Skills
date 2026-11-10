@@ -68,6 +68,7 @@ below, so an example copied from another skill binds without edits.
 | | `SubStep` | Choice | A or B, only if steps have sub phases |
 | | `Review_Cycle` | Number | Starts at 1, increments on every return |
 | | `Max_Step_Reached` | Text | Forward only, only if you gate free navigation |
+| | `Return_Reason` | Multiple lines | Why the record was last returned. Written by the app's Return button |
 | Headline numbers | `Contract_Value`, `Margin_Given_Up` | Currency or Number | Whatever the dashboards chart |
 | Dates | `Last_Updated_On` | Date, time on | Stamped by every patch |
 | | submitted, target, decision, archived | Date, time off | Cycle time KPIs |

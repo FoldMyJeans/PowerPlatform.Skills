@@ -67,6 +67,6 @@ Testing a change against production lists sends real mail and writes real rows. 
 - Every flow's mail goes to one tester address, whatever the recipients input says.
 - Every script downloads by app id. A test app named "TEST - <App>" makes a download by the production name fail, because `--name` matches partially (`references/environment-setup.md`).
 
-Do not plan the test copy around a developer environment. Unmanaged ones can no longer be created from 2026-11-15 and are suspended from 2026-12-15, and running apps or flows in a managed one needs premium. A copy next to production, or in a sandbox environment, stays on standard licensing.
+Do not plan the test copy around a developer environment. Unmanaged ones can no longer be created from 2026-11-15 and are suspended from 2026-12-15, and running apps or flows in a managed one needs premium. Keep the copy next to production in the same environment. That is the default and needs nothing from an admin. A sandbox environment also stays on standard licensing, but someone has to create it and the tenant needs the capacity.
 
 The test copy ships with the same procedure as production. Run the ship there first, then repeat it on production in a quiet window.
