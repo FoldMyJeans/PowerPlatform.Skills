@@ -44,7 +44,7 @@ Conditional approvers are data rules: on the lightweight routes the CFO row is a
 
 ### Deciding
 
-Each approver acts on their own row (the per row gallery in the `powerapps-architecture-and-ui` skill). Two decision actions only, Approve and Return (or Reject). The overall outcome flavor (approved, approved with conditions, approved as margin exception) is set once on the record by whoever finalizes, not per approver.
+Each approver acts on their own row (the per row gallery in the `powerapps-architecture-and-ui` skill). Two decision actions only, Approve and Return. The overall outcome flavor (approved, approved with conditions, approved as margin exception) is set once on the record by whoever finalizes, not per approver.
 
 Parallel by default: all assigned approvers decide in any order, the record is approved when no non approved rows remain in the current cycle:
 
@@ -63,7 +63,7 @@ Sequential gates where needed: a governance variant lets directors approve in pa
 A return is the record moving backward with history kept:
 
 1. The first Return bounces the record. Do not wait for the other approvers.
-2. Remaining Pending rows of the cycle are auto closed (decision Rejected, with an auto comment like "Auto-closed due to a rejection in this cycle" so status surfacing can filter them out).
+2. Remaining Pending rows of the cycle are auto closed in one batch Patch (decision Returned, with an auto comment like "Auto-closed due to a return in this cycle" so status surfacing can filter them out). The formula is the `powerapps-powerfx` skill Rule 26.
 3. The cycle counter on the record increments by one.
 4. The record's step moves back to the fix point (intake or drafting), with the return reason stored on the record.
 5. Resubmission assigns fresh approver rows under the new cycle number.
@@ -107,6 +107,8 @@ List and folder permissions decide what a person can actually read or change. If
 
 The most common "bug" in production is not a bug: a user gets "you don't have permission to do this" on Save, and the fix is SharePoint permissions, not app code. Check SharePoint first, always.
 
+Read what is actually set before you claim a list is secured. Lists usually inherit the site's permissions, so everyone with site access can open every row whatever the grid above says. `GET _api/web/lists/getbytitle('{List}')?$select=HasUniqueRoleAssignments` answers it, and the same property on an item or folder answers it per record. An inheriting list with app side gates is a list anyone on the site can read and edit outside the app.
+
 Confidentiality is enforced here, not in the app. The financial analysis subfolder and the margin columns are the sensitive zone: finance, the executives, and admins. Sales sees the price they entered, never the margin breakdown. Legal sees documents for legal review, not the money. If the app ever leaked a control by mistake, SharePoint still blocks the data.
 
 ### Layer 1 automated: per record permissions
@@ -121,7 +123,7 @@ Shape proven in production, an automated flow (not app called) triggered on the 
 4. If a subordinate folder already exists for the record (an idempotency flag, same pattern as folder creation), break inheritance on that folder too, then re break a further nested confidential subfolder with a narrower grant list (finance lead plus the approvers group plus owners, nobody else).
 5. A second automated flow does the same thing for the file index list, triggered on that list's created or modified event, looked up against the parent record for its person columns. Rows filed under the confidential subfolder get the narrow grant, everything else gets the record team.
 
-Because this runs on every edit, changing who is on a record (swap the finance lead) grants the new person automatically. It does not remove the old one. See the section below, this is the single most expensive thing on this page to get wrong. The consequence that falls out for free: SharePoint security trimming then scopes every browse gallery, dashboard, and KPI tile in the app to what the signed in user can actually open. A person filter in the app formula becomes redundant, the data source itself only returns what that user holds a grant on.
+Because this runs on every edit, changing who is on a record (swap the finance lead) grants the new person on that same save, and the compare and correct step removes the old one. A flow that only breaks inheritance and grants never removes anybody. See the section below, this is the single most expensive thing on this page to get wrong. The consequence that falls out for free: SharePoint security trimming then scopes every browse gallery, dashboard, and KPI tile in the app to what the signed in user can actually open. A person filter in the app formula becomes redundant, the data source itself only returns what that user holds a grant on.
 
 Known limits to write down, not surprises to rediscover: there is a short window (seconds) between a record being created and the flow locking it down. The flow re running on every edit is a feature, not a bug, but it means a manual SharePoint permission change on one item gets clobbered on the next edit, so permission changes belong in the flow's grant list, not clicked by hand.
 
@@ -251,7 +253,7 @@ Set(varIsRelevantToDeal,
         varUserEmailLower = Lower(Coalesce(varDeal.Lead_Architect.Email, "")) ||
         varUserEmailLower = Lower(Coalesce(varDeal.Project_Manager.Email, "")) ||
         /* ... each working SME person column ... */
-        CountRows(Filter(Reviews, Deal.Id = varDeal.ID &&
+        CountRows(Filter(Approvals, Deal.Id = varDeal.ID &&
             Lower(Assigned_To.Email) = varUserEmailLower)) > 0));
 ```
 
@@ -281,5 +283,5 @@ Pick the calibration per process, deliberately, and write it down.
 | Combo shows last cycle's approver | Missing cycle filter in DefaultSelectedItems (the `powerapps-powerfx` skill Rule 8) |
 | Admin cannot edit a step | By design. Visibility, not authority |
 | A newly assigned person still cannot see the record, even hours later | The per record permission flow only runs on that record's own created or modified event. Open and save the record once to re-trigger it, or check the flow's run history for a failure |
-| A person removed from a record's team can still open it | The flow re-syncs grants on every edit, so a stale grant survives until the record is edited again after the removal. Not automatic on person column removal alone if nothing else changed the item |
+| A person removed from a record's team can still open it | Check three things in order. The list may inherit the site's permissions (`HasUniqueRoleAssignments` false on the item), so site access still reaches it. The flow may only break and grant, which never removes anybody (compare and correct, above). Or the flow run for that save failed |
 | An approver added to the roles list still cannot see any records | The roles list row controls what the app assigns. Seeing records is controlled separately by the SharePoint group behind Layer 1 automated. Add the person to both |

@@ -7,7 +7,7 @@ Flows do the three jobs the canvas app cannot: create SharePoint folders, write 
 ## Ground rules
 
 - Trigger: PowerApps (V2) for every app called flow, in the same environment as the app. Two automated flows are an exception, see the permission sync shape in references/approvals-and-permissions.md, they trigger on a SharePoint list's created or modified event, not from the app.
-- Connections: `shared_sharepointonline` (SharePoint) and `shared_office365` (Outlook, Send an email V2), running as invoker by default, so files and emails carry the identity of the person who clicked. The deliberate exception is the drop box upload flow (references/approvals-and-permissions.md), whose connection is embedded on purpose so it runs as the maker instead of the invoker, letting someone submit into a folder they cannot read.
+- Connections: `shared_sharepointonline` (SharePoint) and `shared_office365` (Outlook, Send an email V2). Each connection in a flow is either embedded (the flow's own connection, which is the default) or invoker (the person who clicked). A flow outside a solution sets it as "Provided by run-only user" in its Run only users panel. A solution flow has no such panel, so set `runtimeSource` on the connection's entry in the flow JSON's `connectionReferences`, which is also where an export shows it. The shapes here set both to `invoker`, so files and emails carry the identity of the person who clicked and SharePoint checks that person's own access. After switching a connection to invoker, remove and re-add the flow in the app and save. The deliberate exception is the drop box upload flow (references/approvals-and-permissions.md), whose connection stays embedded so it runs as the connection's owner, letting someone submit into a folder they cannot read.
 - One writer per column (the `powerapps-powerfx` skill Rule 6). Flow written columns (`Folders_Created`, `Root_Folder_Url`, `Notification_Sent` flags) are read by the app, never written by it.
 - Idempotency flags so a re-run never duplicates (`Folders_Created: true` written back after folder creation).
 - Deep link every email: append `&dealId=<record id>` (and optionally `&view=<step>`) to the app play URL so the recipient lands on the exact record.
@@ -117,13 +117,14 @@ Called by the app right after a record is created. Actions in order:
 Hard learned notes:
 
 - `CreateNewFolder` errors if the folder already exists. To tolerate re-runs, chain the subfolder actions with `runAfter` accepting `["Succeeded", "Failed"]`. `CreateFile` by contrast auto creates missing intermediate folders and never errors on existing ones, which is why upload flows do not need the folder to exist first.
-- Decide the write back owner deliberately. If the flow patches `Folders_Created`, the app must not. One production flow skipped the update item action, so its app patches the flag client side after `.Run()`:
+- Decide the write back owner deliberately. If the flow patches `Folders_Created`, the app must not, and it must `Refresh(Deals)` before reading the record back or it sees its cached row (the `powerapps-powerfx` skill Rule 27). One production flow skipped the update item action, so its app patches the flag client side after `.Run()`:
 
 ```
 IfError(
     With({ result: CreateDealFolder.Run(varDeal.Customer, varDeal.Deal_Reference,
                                         varDeal.Route.Value, Text(varDeal.ID)) },
-        Patch(Deals, varDeal, { Folders_Created: true, Folder_Link: result.folderpath })
+        Patch(Deals, LookUp(Deals, ID = varDeal.ID),
+            { Folders_Created: true, Folder_Link: result.folderpath })
     );
     Set(varDeal, LookUp(Deals, ID = varDeal.ID));
     Notify("Deal folder created.", NotificationType.Success),
@@ -236,13 +237,27 @@ When adding a flow JSON directly into an unpacked solution instead of through th
 
 This works and was done in production, but the skeleton first method above produces fewer surprises. Prefer it.
 
+## Repairing data without re-running a flow
+
+When a flow failed half way, or wrote the wrong thing, re-running it can duplicate the parts that worked (emails above all). Reproduce only its missing effects over SharePoint REST instead, from a browser page signed in to the site (for example the site's own page, with a script run in the browser console or by a browser tool). The calls that match what the flow shapes here write:
+
+```
+POST _api/web/folders/AddUsingPath(DecodedUrl='<server relative folder path>')
+POST _api/web/lists/getbytitle('{List}')/items({id})/ValidateUpdateListItem()
+     body: { "formValues": [ { "FieldName": "Folder_Link", "FieldValue": "https://..." } ] }
+```
+
+Both need the request digest from `POST _api/contextinfo`. For a Hyperlink column, a plain URL as the `FieldValue` sets both the URL and the description to that URL, which is what the folder flow writes, so the repaired row matches a normal one. Write the repair against the same schema doc the flow uses, and record what was repaired where the team will see it.
+
 ## Wiring the app to a flow
 
-A `.Run()` only resolves after the flow is added to the app in Studio (the Power Automate pane). A YAML reference alone does not connect it, so the real `.Run()` wiring is part of the manual handoff (the `powerapps-build-playbook` skill). The proven interim: have the button patch the flag directly (`Patch(Deals, varDeal, { Folders_Created: true })`) so the gates and downstream UI can be tested before the flow exists, then swap in the real call in Studio. And after any flow signature change: remove and re-add the flow in the pane, or you get the argument count cache error.
+A `.Run()` only resolves after the flow is added to the app in Studio (the Power Automate pane). A YAML reference alone does not connect it, so the real `.Run()` wiring is part of the manual handoff (the `powerapps-build-playbook` skill). The proven interim: have the button patch the flag directly (`Patch(Deals, LookUp(Deals, ID = varDeal.ID), { Folders_Created: true })`) so the gates and downstream UI can be tested before the flow exists, then swap in the real call in Studio. And after any flow signature change: remove and re-add the flow in the pane, or you get the argument count cache error.
 
 ## Connector and expression traps that only show up at activation or runtime
 
-- **`overwrite` on `CreateFile` gets rejected when you try to turn the flow on.** An older SharePoint `CreateFile` action carrying `"overwrite": true` in its parameters imports fine, looks fine in the designer, and then fails with `WorkflowOperationParametersExtraParameter`, "The API operation does not contain a definition for parameter 'overwrite'" the moment you try to enable it. The connector retired the parameter. Fix: delete the `overwrite` key from every `CreateFile` action's parameters. The behavior change is real, not just a JSON tweak: uploading a file whose name already exists in the folder now errors instead of silently replacing it, so if silent replace was relied on, handle that case explicitly (rename, or check first with `GetFileItem`).
+- **`overwrite` on `CreateFile` gets rejected when you try to turn the flow on.** An older SharePoint `CreateFile` action carrying `"overwrite": true` in its parameters imports fine, looks fine in the designer, and then fails with `WorkflowOperationParametersExtraParameter`, "The API operation does not contain a definition for parameter 'overwrite'" the moment you try to enable it. The connector retired the parameter. Fix: delete the `overwrite` key from every `CreateFile` action's parameters. On a real build in November 2026, a `CreateFile` whose name already existed in the folder replaced the file as a new version, with no error. Community reports say the action errors on an existing name when chunked transfer is on, so test same name behaviour with the action exactly as your flow configures it. Use Update file when replacing is the intent.
+- **Where `CreateFile` overwrites, an index file must be upserted.** A flow that keeps an index (a manifest file, a running log) by creating a file of the same name each run keeps only the last write. Read the current file, merge, write it back. The same goes for uploads: two people uploading `Notes.docx` into one folder leave one file with two versions. Put a timestamp in upload names (`yyyy-MM-dd HHmm`, above) when both must survive.
+- **A `%` in a file name is stored as `%25`.** The connector encodes it once more, so `50% margin.xlsx` lands as `50%25 margin.xlsx`. Strip `%` from names at save time, the same way as `&` and `'`.
 - **`createArray()` called with zero arguments throws at runtime**, not at save. A dedup pattern like `union(createArray(a, b, c), createArray())` (the empty call meant "no extra items") fails with `InvalidTemplate`, "'createArray' expects a comma separated list of parameters. The function was invoked with no parameters." `createArray()` needs at least one argument. Seed it with an empty string instead: `createArray('')`, then filter blanks out of the unioned result the same way you already filter blank emails or names.
 
 - **`select` and `filter` are actions, not template functions.** Writing

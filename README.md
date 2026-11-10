@@ -8,19 +8,20 @@ Standard Microsoft 365 licensing, no Dataverse, no premium connectors.
 Internal business apps get built on whatever licence the company already has, and for most
 companies that is Microsoft 365 with no Power Platform add on. SharePoint lists instead of
 Dataverse. Standard connectors only. No supported source control, because Power Platform Git
-Integration requires Dataverse.
+Integration is a Managed Environments feature, which is premium.
 
 Almost everything written about Power Platform assumes the tier above that. So the answer you
 find is often the answer for a licence you do not have.
 
 Here is what that looks like. You want the app in git so changes are reviewable. The
-documented answer is Git Integration, and it needs Dataverse. The answer available on your
+documented answer is Git Integration, and it needs Managed Environments. The answer available on your
 licence is `pac canvas unpack` and `pack`, which turn the app into readable YAML you can diff
 and commit, and back into an app. The whole app round trips, people pickers and attachment
 forms included, except one property: a people picker's search. Ship naively and every picker
 still opens and quietly finds nobody. Both answers are correct. Only one is available to you,
 and it comes with a procedure: ship through an app-only solution so the app keeps its id,
-publish once in Studio, and restore picker search with a script.
+publish once in Studio, and restore picker search with a script. Or build each picker so it
+needs no fix, at the cost of a second box.
 
 This repo is the second kind of answer, collected in one place. Where something genuinely
 needs Dataverse or a premium connector, it says so and gives the standard licence alternative
@@ -148,8 +149,8 @@ If the tool can browse or fetch a URL, give it the repo link and tell it which s
 for example `skills/powerapps-powerfx/SKILL.md`. If it cannot, open that `SKILL.md`, paste it
 in, and paste whichever file under `references/` it points you to.
 
-Grab one skill, not the set. The whole repo is around 43,000 tokens and will crowd out a chat
-window. A single `SKILL.md` plus one reference is closer to 2,000 to 4,000, which fits
+Grab one skill, not the set. The whole repo runs to tens of thousands of tokens and will
+crowd out a chat window. A single `SKILL.md` plus one reference is a few thousand, which fits
 anywhere. The skills table above tells you which one you want.
 
 What you lose without skill support is only the automatic part. A skill aware tool notices you

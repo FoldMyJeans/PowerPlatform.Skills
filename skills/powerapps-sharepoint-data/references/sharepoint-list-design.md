@@ -34,7 +34,7 @@ Plus one document library with a per record folder structure (created by a flow,
 | Single line text | `record.Field` | `Field: "text"` |
 | Multiple lines | `record.Field` | `Field: "text"` |
 | Choice | `record.Field.Value` | `Field: { Value: "Approved" }` |
-| Person | `record.Field.DisplayName`, `.Email` | the whole record: `Field: cmb_Picker.Selected` |
+| Person | `record.Field.DisplayName`, `.Email`. `Choices(List.Field, "text")` searches the directory, without the text it returns only a few dozen people | the whole record: `Field: cmb_Picker.Selected` |
 | Lookup | `record.Field.Id`, `.Value` | `Field: { Id: 42, Value: "Title text" }` |
 | Number / Currency | `record.Field` | `Field: Value(txt_Input.Text)` |
 | Date | `record.Field` | `Field: dp_Picker.SelectedDate` or `Now()` |
@@ -135,7 +135,7 @@ One row per approver, per record, per cycle:
 | `Deal` | Lookup | Back to the main record |
 | `Approver_Role` | Choice | Which hat this row is |
 | `Assigned_To` | Person | Who must decide |
-| `Decision` | Choice | Pending, Approved, Returned (or Rejected) |
+| `Decision` | Choice | Pending, Approved, Returned |
 | `Comment` | Multiple lines | Required on return, optional on approve |
 | `Assigned_On`, `Decided_On` | Date | The audit trail |
 | `Step_Number` | Choice | Which step of the process assigned this row. Every cycle scoped query filters on it |
@@ -177,6 +177,7 @@ What that means in practice:
 - Keep the hot small lists small. A roles list has a dozen rows, an approvals list has a few per record. Non delegable filters over these are fine.
 - For the main list, design dashboard galleries to bind directly to the data source with simple delegable filters where possible, then do the personal, non delegable checks (`Lower(Coalesce(Assigned_To.Email,"")) = varUserEmailLower`) per row or over already filtered sets.
 - Decide early which queries must be delegable and shape columns for them. Index every column a delegable filter touches, and prefer a Choice or Number status column over a computed condition.
+- When a query mixes delegable and non delegable tests, nest them. The inner `Filter` holds only delegable tests and runs on the server, the outer one runs locally over that already small result: `Filter(Filter(Deal_Files, Deal.Value = varDeal.Deal_Reference), EndsWith(File_Name, ".pdf"))`. A Lookup column compared on `.Value` delegated on a real build, so the inner filter reaches every row however long the list grows. The outer tests then only ever see one record's rows.
 - When a person filter genuinely has to run server side, mirror the column. Add a plain single line text column and write the person's email into it in the same patch that writes the person column, already lowercased. The filter is then `Filter(Deals, Owner_Email = varUserEmailLower)`, delegable, a bare column compared with `=`. Wrapping the column in `Lower()` inside the Filter breaks delegation again and puts you back where you started, which is the whole reason the lowercasing happens on write and not on read. Backfill the mirror on existing rows or they silently drop out of every filtered view.
 
 ## Building the lists

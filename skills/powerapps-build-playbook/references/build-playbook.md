@@ -50,7 +50,7 @@ Two decisions to lock with the human before the first container, because both ar
 - The route and step model (how many routes, which steps each has).
 - What is shared versus duplicated (documents panel, approval panel, stepper). Default to shared.
 
-People pickers and attachment forms are ordinary source. Write each picker in pa.yaml with a plain `Items: Choices(<List>.<PersonColumn>)` and no `SearchItems` line, and after every ship run the picker search fix from the shipping procedure (the `powerapps-source-workflow` skill). Buttons that will call a flow ship with an interim OnSelect (patch the flag directly) until phase 4.
+People pickers and attachment forms are ordinary source. Decide the picker style once, before the first picker, because it sets the cost of every ship: a searchable combo with a plain `Items: Choices(<List>.<PersonColumn>)` and no `SearchItems` line, which needs the picker search fix after every ship, or a non searchable combo fed by a text input, which needs nothing (both in the `powerapps-source-workflow` skill). Buttons that will call a flow ship with an interim OnSelect (patch the flag directly) until phase 4.
 
 ## Phase 4: flows last
 

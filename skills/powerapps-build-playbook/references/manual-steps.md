@@ -32,7 +32,7 @@ An AI assistant (or a remote developer) can write the YAML, the Power Fx, and th
 | 4 | Run App.OnStart | Tree view, App, three dots, Run OnStart. Do it after every import and every OnStart edit |
 | 5 | Check the Formulas and errors panel | Zero red before anything else. This, not a clean pack, is the correctness check |
 | 6 | Share the app with users, publish | Share adds users, publish makes the saved version live |
-| 7 | After every ship of an app with people pickers, open it for edit and Publish | Step 4 of the shipping procedure. Nothing to paste. The picker search fix runs on the app this publish produces |
+| 7 | After every ship of an app with searchable people pickers, open it for edit and Publish | Step 4 of the shipping procedure. Nothing to paste. The picker search fix runs on the app this publish produces. If no publish dialog appears, publish the saved version from the app's Versions page |
 | 8 | Grab the app play URL | Apps, Details, Web link. Needed by every notification flow and deep link button. Replace any `<APP_PLAY_URL>` placeholder in button code with it, a placeholder here means dead email links |
 
 ## Per app, flow side

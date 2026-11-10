@@ -4,7 +4,8 @@ An app shipped from pa.yaml source loses every combo's SearchItems (the YAML can
 Once Studio has opened and published the app, each combo holds the template sample
 `Search(ComboBoxSample, Self.SearchText, Value1)`: typing a name finds nobody and saved people
 only show after the list is opened. This rewrites SearchItems from the combo's own Items formula,
-`Choices(List.Column)` -> `Choices(List.Column,<combo>.SearchText)`. SearchFields is left alone.
+`Choices(List.Column)` -> `Choices(List.Column,<combo>.SearchText)`. SearchFields is left alone, and so is
+a combo with IsSearchable false (the two box picker that searches through a text input).
 
   python fix_picker_search.py app.msapp               report only, exit 1 if anything needs fixing
   python fix_picker_search.py app.msapp fixed.msapp   write the fixed copy
@@ -16,7 +17,7 @@ import re
 import sys
 import zipfile
 
-CHOICES = re.compile(r'^\s*Choices\(\s*(.+?)\s*\)\s*$', re.S)
+CHOICES = re.compile(r'^\s*Choices\(\s*([^,()]+?)\s*\)\s*$', re.S)
 
 
 def walk(c):
@@ -30,6 +31,8 @@ def fix_control(c):
     if not c.get('Template', {}).get('Id', '').endswith('/combobox'):
         return []
     rules = {r['Property']: r for r in c.get('Rules', [])}
+    if rules.get('IsSearchable', {}).get('InvariantScript', '').strip().lower() == 'false':
+        return []
     m = CHOICES.match(rules.get('Items', {}).get('InvariantScript', ''))
     if not m:
         return f"{c['Name']}: Items is not Choices(List.Column), fix SearchItems by hand"
@@ -82,15 +85,18 @@ def run(src, dst=None, out=print):
 
 
 def selftest():
-    def combo(name, items, search):
+    def combo(name, items, search, searchable='true'):
         return {'Name': name, 'Template': {'Id': 'http://microsoft.com/appmagic/combobox'}, 'Rules': [
             {'Property': 'Items', 'InvariantScript': items},
             {'Property': 'SearchItems', 'InvariantScript': search},
+            {'Property': 'IsSearchable', 'InvariantScript': searchable},
             {'Property': 'SearchFields', 'InvariantScript': '["Claims"]'}]}
     screen = {'TopParent': {'Name': 'scr', 'Template': {'Id': 'screen'}, 'Children': [
         combo('cmb_Owner', 'Choices(Deals.Sales_Owner)', 'Search(ComboBoxSample, Self.SearchText, Value1)'),
         combo('cmb_Done', 'Choices(Deals.Lead)', 'Choices(Deals.Lead,cmb_Done.SearchText)'),
-        combo('cmb_Odd', 'colPeople', 'Search(ComboBoxSample, Self.SearchText, Value1)')]}}
+        combo('cmb_Odd', 'colPeople', 'Search(ComboBoxSample, Self.SearchText, Value1)'),
+        combo('cmb_Text', 'Choices(Deals.Lead, txt_Find.Text)', 'Search(ComboBoxSample, Self.SearchText, Value1)'),
+        combo('cmb_TwoBox', 'Choices(Deals.Lead, txt_Find.Text)', 'Search(ComboBoxSample, Self.SearchText, Value1)', 'false')]}}
     src, dst, log = io.BytesIO(), io.BytesIO(), []
     with zipfile.ZipFile(src, 'w') as z:
         z.writestr('Controls/1.json', json.dumps(screen))
@@ -103,6 +109,9 @@ def selftest():
     assert fixed['cmb_Owner']['SearchFields'] == '["Claims"]'  # never touched
     assert fixed['cmb_Odd']['SearchItems'].startswith('Search(ComboBoxSample')  # left for a human
     assert any('MANUAL cmb_Odd' in line for line in log)
+    assert any('MANUAL cmb_Text' in line for line in log)  # searchable but Items carries search text
+    assert not any('cmb_TwoBox' in line for line in log)  # not searchable, nothing to fix
+    assert fixed['cmb_TwoBox']['SearchItems'].startswith('Search(ComboBoxSample')
     assert zipfile.ZipFile(dst).read('Header.json') == b'{}'
     done = io.BytesIO()
     with zipfile.ZipFile(done, 'w') as z:

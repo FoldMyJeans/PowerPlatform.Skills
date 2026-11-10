@@ -47,7 +47,8 @@ for pa.yaml and packing, `powerapps-architecture-and-ui` for the shell and patte
 
 - Build the whole app in source, people pickers and attachment forms included, and ship it
   through its app-only solution with the procedure in the `powerapps-source-workflow` skill.
-  Never write `SearchItems` into pa.yaml. Picker search is restored after each ship.
+  Never write `SearchItems` into pa.yaml. Picker search is restored after each ship, or the
+  picker is built as a non searchable combo fed by a text input, which needs no fix.
 - Redact anything shareable. A fictional company name, role titles instead of people names,
   placeholder tenant URLs and GUIDs. Verify with a grep before committing.
 - Keep the docs honest. A gotcha earned on a real build gets added to the matching reference

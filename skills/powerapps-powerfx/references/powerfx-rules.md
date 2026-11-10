@@ -10,14 +10,13 @@ Every one of these cost real debugging time on a real build. They are written as
 
 ```
 // WRONG: generic "Network Error", brutal to debug
-Patch(Deals, rec, { Current_Step: "5" })
-Patch(Deals, rec, { Current_Step: 5 })
+Patch(Deals, rec, { Status: "Waiting for approval" })
 
 // RIGHT: pass a record with Value
-Patch(Deals, rec, { Current_Step: { Value: "5" } })
+Patch(Deals, rec, { Status: { Value: "Waiting for approval" } })
 
 // ALSO RIGHT: validated choice record
-Patch(Deals, rec, { Current_Step: LookUp(Choices(Deals.Current_Step), Value = "5") })
+Patch(Deals, rec, { Status: LookUp(Choices(Deals.Status), Value = "Waiting for approval") })
 
 // Lookup columns want Id plus Value
 Patch(Docs, Defaults(Docs), { Deal: { Id: varDeal.ID, Value: varDeal.Deal_Reference } })
@@ -30,7 +29,6 @@ For Person columns, pass the whole Person record (`cmb_Picker.Selected` or a Per
 ```
 // WRONG: "Incompatible Type". Blank() has no schema.
 Set(varRecord, Blank());  Patch(List, Defaults(List), varRecord)
-
 // RIGHT: Power Apps knows the record shape
 Set(varRecord, Defaults(List));  Patch(List, varRecord, { ... })
 ```
@@ -50,7 +48,7 @@ The local record variable does not update itself. Every patch is followed by the
 
 ```
 Patch(Deals, LookUp(Deals, ID = varDeal.ID), {
-    Current_Step: { Value: "5" },
+    Current_Step: 5,                // a Number column in the example schema
     SubStep: { Value: "A" },        // always reset, unless explicitly moving to "B"
     Last_Updated_On: Now()
 });
@@ -89,7 +87,6 @@ IfError(
     Set(varSendNotification_TimerStart, false);
     Set(varSendNotification_TimerStart, true);
     Notify("Saved.", NotificationType.Success),
-
     // catch: undo the gate so the UI is not stuck, red toast
     Set(varSendNotification_Ready, true);
     Notify("Save failed: " & FirstError.Message & " Refresh and try again.", NotificationType.Error)
@@ -97,6 +94,23 @@ IfError(
 ```
 
 A sequence of patches followed by an unconditional green toast is a silent failure generator. The catch must also reset any gate variable the try set, or the user is left staring at a permanently disabled button.
+
+### Rule 26: Update many rows with one batch Patch, not a ForAll that patches the list it reads
+
+```
+// WRONG: ForAll reads Approvals and patches Approvals inside the loop. Studio rejects it
+ForAll(Filter(Approvals, Deal.Id = varDeal.ID && Decision.Value = "Pending") As r,
+    Patch(Approvals, r, { Decision: { Value: "Returned" } }))
+
+// RIGHT: base rows plus a table of changes, one call
+With({ rows: Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
+                    && Review_Cycle = varDeal.Review_Cycle && Decision.Value = "Pending") },
+    Patch(Approvals, rows,
+        ForAll(rows As r, { Decision: { Value: "Returned" },
+            Comment: "Auto-closed due to a return in this cycle", Decided_On: Now() })))
+```
+
+The batch form is also one round trip instead of one per row. The return loop's auto close in the `powerapps-approvals-and-flows` skill is this shape.
 
 ## Reading and querying
 
@@ -124,6 +138,10 @@ Lower(Coalesce(ThisItem.Assigned_To.Email, "")) = varUserEmailLower
 ```
 
 Cache `Set(varUserEmailLower, Lower(User().Email))` once in OnStart and again in OnVisible. Every permission check uses the cached value.
+
+### Rule 24: `Choices` on a Person column needs search text to reach the directory
+
+`Choices(Deals.Sales_Owner)` returns only the first few dozen people (about 28 on a real tenant), not the directory. `Choices(Deals.Sales_Owner, txt_S1_OwnerSearch.Text)` searches the whole directory for the typed text. So a people picker with no search text lists a sample, and a `LookUp(Choices(Deals.Sales_Owner), ...)` can only find someone inside that sample. To find a person, pass text. That search text is also what breaks in a people picker shipped from source, see the `powerapps-source-workflow` skill.
 
 ## Type system traps
 
@@ -154,14 +172,28 @@ Concat(steps As s, s.n & ". " & s.lbl, Char(10))
 LookUp(steps As s, s.n = cur).lbl
 ```
 
-### Rule 13: Modern and Classic text inputs read differently
+### Rule 13: Read a text input with `.Text`, in either family
 
 | Family | YAML identifier | Read the typed value |
 |---|---|---|
-| Classic | `Classic/TextInput@2.3.2` | `txt_Foo.Value` |
-| Modern | `ModernTextInput@1.0.0` | `txt_Foo.Text` |
+| Classic | `Classic/TextInput@2.3.2` | `txt_Foo.Text` |
+| Modern | `ModernTextInput@1.0.0` (the version moves, copy it from your unpacked source) | `txt_Foo.Text` |
 
-Wrong property on Modern throws "The name 'Value' is not recognized". Wrong property on Classic returns an empty string silently, which is worse. If Studio offers to upgrade a classic control to modern, every reference in the app must be migrated in the same pass: DisplayMode formulas, patches, validation, HtmlViewer logic.
+Neither has a `.Value` output, so a formula reading `.Value` fails with a name not recognized error. The modern controls were refreshed from February 2026 with renamed properties (`FontColor` to `Color`, `FontSize` to `Size`) and enum values (`Align.Left`), and the modern text input's `OnChange` now fires on leaving the box. If Studio offers to update or upgrade a control, migrate every reference to it in the same pass: DisplayMode formulas, patches, validation, HtmlViewer logic, and any YAML generator that writes it.
+
+### Rule 25: IfError's fallback must match the value's type
+
+Two argument `IfError(value, fallback)` returns the type of the value. A fallback of another type is a compile error. Rule 7's shape already obeys this, both of its branches end in `Notify`.
+
+```
+// WRONG: Patch returns a record, Notify returns a boolean
+IfError(Patch(Deals, LookUp(Deals, ID = varDeal.ID), { Last_Updated_On: Now() }),
+    Notify("Save failed: " & FirstError.Message, NotificationType.Error))
+
+// RIGHT: end the value chain with true, so both sides are boolean
+IfError(Patch(Deals, LookUp(Deals, ID = varDeal.ID), { Last_Updated_On: Now() }); true,
+    Notify("Save failed: " & FirstError.Message, NotificationType.Error))
+```
 
 ## Controls
 
@@ -207,7 +239,8 @@ The cache holds the outputs too, not just the inputs, and that version is much h
 IfError(
     With({ result: CreateFolder.Run(varDeal.Customer, varDeal.Deal_Reference,
                                     varDeal.Route.Value, Text(varDeal.ID)) },
-        Patch(Deals, varDeal, { Folders_Created: true, Folder_Link: result.folderpath })
+        Patch(Deals, LookUp(Deals, ID = varDeal.ID),
+            { Folders_Created: true, Folder_Link: result.folderpath })
     );
     Set(varDeal, LookUp(Deals, ID = varDeal.ID));
     Notify("Folder created.", NotificationType.Success),
@@ -215,7 +248,19 @@ IfError(
 )
 ```
 
-`With` captures the flow's response record so the returned fields can be used in the same expression.
+`With` captures the flow's response record so the returned fields can be used in the same expression. Here the app writes the returned values itself, so the re-fetch after its own Patch is enough. When the flow writes the row, Rule 27 applies.
+
+### Rule 27: After a flow writes a row, `Refresh` before you `LookUp`
+
+```
+// WRONG: the flow stamped the row, the app reads its own cached copy of it
+NotifyApprovers.Run(varDeal.ID, varAppLink); Set(varDeal, LookUp(Deals, ID = varDeal.ID));
+
+// RIGHT
+NotifyApprovers.Run(varDeal.ID, varAppLink); Refresh(Deals); Set(varDeal, LookUp(Deals, ID = varDeal.ID));
+```
+
+The app's own Patch updates its cache, a flow's write does not. A LookUp straight after the flow returns the row as it was before the flow ran. On one build that stale read decided whether to send the next email, and the email was skipped with nothing in red.
 
 ## URLs
 
@@ -235,9 +280,7 @@ Client names contain spaces, ampersands and apostrophes. Flow side string buildi
 
 ### Rule 22: Patch the record you just fetched, not the one you are holding
 
-`Patch(List, record, {...})` sends that record's version tag, and SharePoint rejects the write if the row changed since the app loaded it. The failure is `Network error when using Patch function: Conflicts exist with changes` and it is a different problem from the Choice or Lookup type error that produces a similar message.
-
-Automated flows are what make this routine rather than rare. Any flow that stamps a column on the record behind the user (a guard that writes an approved baseline, a notifier that sets a sent flag) bumps the row version a minute after the user's own save. The user's next save on the same screen then fails, and nothing about the app looks broken. On a build where a guard flow seeds a baseline on first save, this hits every new record.
+`Patch(List, record, {...})` sends that record's version tag, and SharePoint rejects the write if the row changed since the app loaded it. The failure is `Network error when using Patch function: Conflicts exist with changes` and it is a different problem from the Choice or Lookup type error that produces a similar message. Automated flows are what make this routine rather than rare. Any flow that stamps a column on the record behind the user (a guard that writes an approved baseline, a notifier that sets a sent flag) bumps the row version a minute after the user's own save. The user's next save on the same screen then fails, and nothing about the app looks broken. On a build where a guard flow seeds a baseline on first save, this hits every new record.
 
 ```
 // WRONG, writes against whatever the app loaded earlier

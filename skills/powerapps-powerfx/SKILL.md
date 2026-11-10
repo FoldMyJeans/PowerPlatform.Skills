@@ -5,7 +5,8 @@ description: >-
   flow calls, IfError, and the non negotiable rules that prevent the classic failures. Use
   whenever the user asks for any canvas app formula, has a Power Fx error, patches a record,
   reads a Choice or Yes/No or Person column, calls a flow with .Run, or hits an untyped Table
-  default, an As alias scope issue, or a wrong blank. Trigger on "my Power Fx has an error",
+  default, an As alias scope issue, an IfError type mismatch, a ForAll that patches its own
+  list, a stale row after a flow, or a wrong blank. Trigger on "my Power Fx has an error",
   "write the OnSelect formula", "patch is not saving", "formula returns blank", "how do I
   filter", "call the flow from the app". Assumes SharePoint backed canvas apps on standard
   Microsoft 365 licensing, no Dataverse.
@@ -27,9 +28,9 @@ and column design use `powerapps-sharepoint-data`. For flow definitions use
 ## Workflow
 
 1. Before writing, load `references/powerfx-rules.md` and find the rules the formula
-   touches. Writing to SharePoint: rules 1 to 7. Reading and querying: 8 to 10. Type traps:
-   11 to 13. Controls: 14 to 17. Flow calls: 18 to 20. URLs: 21. Write conflicts: 22.
-   Verification: 23.
+   touches. Writing to SharePoint: rules 1 to 7 and 26. Reading and querying: 8 to 10 and
+   24. Type traps: 11 to 13 and 25. Controls: 14 to 17. Flow calls: 18 to 20 and 27. URLs:
+   21. Write conflicts: 22. Verification: 23.
 2. Before coding against a Choice column's values, ask the user to paste the current values
    from SharePoint settings. Choice options live in the column configuration and drift.
 3. Deliver the complete, paste ready formula labeled with control and property. If a new
@@ -42,7 +43,8 @@ and column design use `powerapps-sharepoint-data`. For flow definitions use
 - Patch, then re-fetch, and stamp `Last_Updated_On` on every step moving patch (Rules 3, 4).
 - One writer per column. Check who owns a column before adding a Patch (Rule 6).
 - Cycle scoped queries always filter on the current cycle (Rule 8).
-- Wrap multi patch saves and flow calls in IfError (Rules 7, 20).
+- Wrap multi patch saves and flow calls in IfError, same type on both sides (Rules 7, 20, 25).
+- After a flow writes a row, `Refresh` the list before reading the row back (Rule 27).
 
 ## References in this skill
 
