@@ -107,8 +107,9 @@ ForAll(Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
 With({ rows: Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
                     && Review_Cycle = varDeal.Review_Cycle && Decision.Value = "Pending") },
     Patch(Approvals, rows,
-        ForAll(rows As r, { Decision: { Value: "Returned" },
-            Comment: "Auto-closed due to a return in this cycle", Decided_On: Now() })))
+        ForAll(rows As r, { Decision: { Value: "Returned" }, Decided_On: Now(),
+            Comment: If(Lower(Coalesce(r.Assigned_To.Email, "")) = varUserEmailLower,
+                Trim(txt_ReturnReason.Text), "Auto-closed due to a return in this cycle") })))
 ```
 
 The batch form is also one round trip instead of one per row. The return loop's auto close in the `powerapps-approvals-and-flows` skill is this shape.

@@ -65,8 +65,12 @@ IfError(
 // WRONG: the flow flagged the approval rows, the count reads the app's cached copy
 NotifyApprovers.Run(varDeal.ID, varAppLink); If(CountRows(Filter(Approvals, ... )) = 0, NotifyPM.Run(...))
 
-// RIGHT: refresh the list the flow wrote (Deals for a flow that writes the record)
-NotifyApprovers.Run(varDeal.ID, varAppLink); Refresh(Approvals); If(CountRows(Filter(Approvals, ... )) = 0, NotifyPM.Run(...))
+// RIGHT, with the full unsent count (Rules 8 and 9): refresh the list the flow wrote (Deals for a flow that writes the record)
+NotifyApprovers.Run(varDeal.ID, varAppLink);
+Refresh(Approvals);
+If(CountRows(Filter(Approvals, Deal.Id = varDeal.ID && Step_Number.Value = "7"
+        && Review_Cycle = varDeal.Review_Cycle && Coalesce(Notification_Sent, false) <> true)) = 0,
+    NotifyPM.Run(varDeal.ID, varAppLink))
 ```
 
 The app's own Patch updates its cache, a flow's write does not. A read straight after the flow returns the rows as they were before it ran. The call only waits for the flow when the flow ends in a Respond to a Power App or flow action, so give it one. On one build that stale read decided whether to send the next email, and the email was skipped with nothing in red.

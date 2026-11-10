@@ -11,7 +11,7 @@ Even without Dataverse tables, the app and the flows live in Dataverse solutions
 - An app-only solution holding the canvas app and nothing else. This is what the ship procedure exports and imports.
 - A flow solution holding the flows and their connection references.
 
-Create the app-only solution once in the maker portal: Solutions, New solution, then Add existing, App, Canvas app. An app import can then never overwrite or reactivate a flow, and a flow edit cycle never drags a large msapp through export and import. Adding the app to a solution does not change the app or its AppId.
+Create the app-only solution once, right after the app's first import and before its first ship, in the maker portal: Solutions, New solution, then Add existing, App, Canvas app. An app import can then never overwrite or reactivate a flow, and a flow edit cycle never drags a large msapp through export and import. Adding the app to a solution does not change the app or its AppId.
 
 The unpacked flow solution layout:
 

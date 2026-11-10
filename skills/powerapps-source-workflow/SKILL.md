@@ -43,6 +43,7 @@ source ship.
 | A handful of formula edits | Paste in Studio, publish, pull into the repo (step 6) |
 | New controls, a restyle, anything in more than a few places | Edit source and ship (steps 1 to 5) |
 | The app has searchable Classic people pickers | Every source ship also runs the picker fix. Or switch them to the two box picker once |
+| A brand new app, never in the cloud | First import in Studio, data sources, then the app-only solution (the `powerapps-build-playbook` skill, manual steps). Every ship after that follows this skill |
 
 ## Workflow
 
