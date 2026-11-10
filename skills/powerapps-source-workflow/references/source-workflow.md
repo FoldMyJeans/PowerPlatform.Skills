@@ -140,13 +140,19 @@ Ship a helper script (`powerapps/app/app.ps1`) with two verbs:
 The loop:
 
 1. Edit `src/Src/scr_*.pa.yaml`.
-2. `app.ps1 pack`.
+2. `app.ps1 pack`, with the colon check below as its first step.
 3. Load the build into a throwaway copy with Import app from file, and never Save it. A YAML packed app shows a one time "validate by opening in Studio" banner. Expected.
 4. Run App.OnStart once (Tree view, App, three dots, Run OnStart) so variables exist.
 5. Open the Formulas and errors panel and clear every red error.
 6. Fix in YAML, repack, repeat. When it is clean, ship it with the procedure below.
 
-The critical mindset: pack success is not correctness. Pack does not validate property names, YAML syntax, or Power Fx. A misspelled property or a broken block scalar packs fine and fails only when Studio loads the app. Loading the msapp in Studio is the real check, so do it before every big ship.
+The critical mindset: pack success is not correctness. Pack does not validate property names, YAML syntax, or Power Fx. A misspelled property or a broken block scalar packs fine and fails only when Studio loads the app. `pac canvas validate` still appears in `pac canvas` help, but on pac 2.7.4 it answers "'pac canvas validate' is no longer supported". Loading the msapp in Studio is the real check, so do it before every big ship.
+
+One YAML trap is cheap to catch before packing. A plain scalar holding `: ` passes pack and breaks the app (the anatomy rules above). This finds every one, and should print nothing:
+
+```powershell
+Select-String -Path src\Src\*.pa.yaml -Pattern '^\s+[\w.]+: =.*: '
+```
 
 On first ever load the data connections must be added once inside Studio (add the SharePoint lists as data sources). After that, the app keeps them.
 
