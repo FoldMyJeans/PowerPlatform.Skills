@@ -26,6 +26,7 @@ behaves wrongly and the Formulas panel is clean and the flow run history is gree
 | `pac solution import` prints nothing and looks hung | Without `--async` the CLI is silent for the whole import. It is running. Use `--async --max-async-wait-time 8`, which streams progress. Do not fall back to the portal | `powerapps-source-workflow` |
 | A connection reads Connected in the portal, and flows fail on it | The refresh token died months ago. The status does not track it | `powerapps-source-workflow` |
 | The app packs fine and then misbehaves or will not load | Pack does not validate property names, YAML syntax, or Power Fx. A clean pack is not a clean app | `powerapps-source-workflow` |
+| The app is slow to launch, or keeps sending requests while the user does nothing | Formulas on hidden views still query SharePoint, a repeating timer refreshes a list every tick and re-runs every formula reading it, or a gallery runs a `LookUp` per row. Count the requests first, see Measuring requests with Live monitor below | `powerapps-architecture-and-ui`, `powerapps-sharepoint-data` |
 | A rename in SharePoint breaks nothing, then breaks everything later | Display name renames do not change internal names, and formulas bind to internal names | `powerapps-sharepoint-data` |
 
 ## Build and toolchain
@@ -123,6 +124,38 @@ A load error (PA1001, PA2108, PA1011) comes first. Nothing else can be checked o
 | Import prints "The original workflow definition has been deactivated and replaced" | A note from the import about the replaced definition. The flows were still on afterwards | Check every flow's state anyway | `powerapps-source-workflow` |
 | Studio Publish only saves, no publish dialog appears (often when driven from a browser tool) | The dialog can arrive late or not at all | Maker portal, the app, Versions, the newest version, Publish this version | `powerapps-source-workflow` |
 | Studio stops responding when driven from a browser tool | An emulated viewport (1600 by 1000 here) | Use the browser's own desktop viewport | `powerapps-source-workflow` |
+
+## Measuring requests with Live monitor
+
+"It feels slow" is not debuggable either. Count the requests before and after a change, in the same scenarios, with the same account and the same data:
+
+1. Open Live monitor on the published app and play the app from it. After an import, click the player's "old version, Refresh" banner first, or you measure the previous build.
+2. Run fixed scenarios: launch with the home view showing, open each heavy view, and sit idle for 40 seconds with a record selected. Idle traffic is where hidden views and refresh timers show up.
+3. Count the events whose category is Network. Leave out `getRowsCount`, which pairs with each `getRows`, so counting both doubles the number. Note the response sizes too, a query that stays but returns less still counts as a gain.
+
+Reading the grid from a browser tool takes care, because the event grid is AG Grid and virtualised. Only the rows on screen exist in the page, so a plain read of the grid misses most events. Scroll `.ag-body-viewport` a screen at a time with a short wait (about half a second), and on each stop read the `[role=gridcell]` elements by their `col-id` attribute, merged by row index, until the scroll position stops moving:
+
+```
+// run in the Live monitor tab
+const vp = document.querySelector('.ag-body-viewport');
+const total = +document.body.innerText.match(/Items: (\d+)/)[1];  // status bar count
+const rows = {};
+const grab = () => document.querySelectorAll('.ag-center-cols-container [role=row]').forEach(r => {
+  const c = {};
+  r.querySelectorAll('[role=gridcell]').forEach(g => c[g.getAttribute('col-id')] = g.innerText.trim());
+  if (c.rowNumber && c.time) rows[c.rowNumber] = c;  // a row still loading has empty cells: skip it
+});
+// visit every missing row until all are read; one scroll pass misses rows that are still loading
+for (let pass = 0; pass < 6 && Object.keys(rows).length < total; pass++)
+  for (let i = 1; i <= total; i++) if (!rows[i]) {
+    vp.scrollTop = Math.max(0, (i - 3) * 32);  // 32 px rows
+    await new Promise(done => setTimeout(done, 500));
+    grab();
+  }
+Object.values(rows).filter(c => c.category === 'Network' && c.name !== 'getRowsCount').length
+```
+
+The `col-id` values, read from the live grid in November 2026: `rowNumber` (the Id column), `time`, `category`, `name` (the operation, such as `getRows`), `result`, `Data source`, `Control`, `Property`, `Duration (ms)` and `Response size`. Group by `Control` and `Property` to see which formulas send the requests. If a name has changed, check it against one row before trusting the count. Two browser tool traps: the grid only fills while the monitor tab is in front, and clicks only reach the app while the app's tab is in front. If the tool blocks the "Play published app" new tab, use Copy Live monitor link and open that URL in a second tab yourself.
 
 ## When something is not listed
 

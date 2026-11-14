@@ -10,7 +10,7 @@ The apps built with this playbook are single screen applications. The app never 
 - Navigation state is one variable instead of `Navigate()` scattered everywhere.
 - Everything that must react together (top bar, stepper, step containers) lives in one scope.
 
-The cost is one large YAML file and careful `Visible` discipline. Worth it every time so far.
+The cost is one large YAML file, careful `Visible` discipline, and hidden views that keep running their formulas until you gate them (see Hidden views still query SharePoint below). Worth it every time so far.
 
 ## The container tree
 
@@ -57,6 +57,55 @@ Visible: =varView = "FULL_FLOW"
 ```
 
 The `varViewStep` part is the clickable stepper pattern (browse a step without moving the record), detailed in references/ui-patterns.md. A useful addition is `varDevStep` (0 is normal, 1 to 8 force shows a step for debugging) and a SubStep condition for A and B phases.
+
+## Hidden views still query SharePoint
+
+A container with `Visible` false hides its children. It does not stop their formulas. Delayed load (`delaycontrolrendering` in the app's flags) defers whole screens until they open, and in a single screen app every view sits on the one screen that is already open, so it does not help here.
+
+Measured with Live monitor on a production single screen app, delayed load on: labels, button colours, gallery `Items` and combo `DefaultSelectedItems` on hidden views all queried SharePoint at launch, again on every change of a variable they read, and again after every `Refresh` of their list. Launch with only the home view showing cost 123 requests. How to take that measurement is in the `powerapps-troubleshooting` skill.
+
+The fix is to gate every data bound property that is not a behaviour property (behaviour properties like `OnSelect` only run when fired) on the view's own container:
+
+```
+// label on the approvals panel
+Text: =If(con_Approvals.Visible,
+    CountRows(Filter(Approvals, Deal.Id = varDeal.ID
+        && Review_Cycle = varDeal.Review_Cycle
+        && Decision.Value = "Pending")) & " pending",
+    "")
+
+// gallery on the tracker: no else branch, a hidden gallery gets an empty table
+Items: =If(con_Tracker.Visible, Sort(Deals, Last_Updated_On, SortOrder.Descending))
+```
+
+| Property | Neutral value while hidden |
+|---|---|
+| Text | `""` |
+| A colour (`Fill`, `Color`, `BorderColor`) | `RGBA(0,0,0,0)` |
+| `DisplayMode` | `DisplayMode.Disabled` |
+| A true or false property | `false` |
+| Gallery `Items` | no else branch |
+
+On that app the gate took launch from 123 to 60 requests, and idle with a record selected from about 108 to 15 requests per 40 seconds. Gate on the container whose own `Visible` formula carries the view condition, not on an inner container that is always true.
+
+Leave these ungated:
+
+- Anything another control reads as a gate where blank means "allowed". A picker's `DefaultSelectedItems` that a Save button writes back, where a blank picker means "remove the reviewer": gated, a save while that view is hidden clears the person. A "missing items" label that a Next button checks with `IsBlank`: gated to `""`, it reports nothing missing and the button opens. To gate these safely, the reader first needs its own "the view has loaded" condition.
+- A form's `DataSource` and `Item`.
+- A people picker's `Items` and `SearchItems`. The picker search fix in the `powerapps-source-workflow` skill expects a plain `Choices()` in `Items`.
+
+Before you gate a control, search the source for every reference to its outputs (`lbl_X.Text`, `cmb_X.SelectedItems`). Anything outside the view that reads one gets the neutral value whenever the view is hidden.
+
+### A repeating timer that refreshes a list
+
+`Refresh(List)` re-runs every formula on the screen that reads that list, hidden views included. A repeating timer that refreshes a list (to pick up rows a flow wrote) therefore re-runs all of them on every tick. On the app above, a 10 second file index refresh was about half of all idle traffic. Refresh only while the view that shows that data is on screen:
+
+```
+// tmr_FilesAutoRefresh: Repeat true, Duration 10000
+OnTimerEnd: =If(con_Docs.Visible, Refresh(Deal_Files))
+```
+
+Any button that leads into such a view and needs fresh rows refreshes the list itself, because the timer no longer does it in the background.
 
 ## App.OnStart: the numbered sections
 

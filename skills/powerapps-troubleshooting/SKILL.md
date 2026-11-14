@@ -8,7 +8,7 @@ description: >-
   connected flow, before reasoning from first principles, because the error is probably
   already listed with its cause and fix. Trigger on "I get this error", "pack fails",
   "PA2108", "the button stays grey", "the formula shows red", "flow call fails", "it worked
-  yesterday". Assumes SharePoint backed canvas apps on standard Microsoft 365 licensing, no
+  yesterday", "the app is slow", "Live monitor", "count the requests". Assumes SharePoint backed canvas apps on standard Microsoft 365 licensing, no
   Dataverse.
 ---
 
@@ -35,12 +35,16 @@ to `powerapps-approvals-and-flows`.
    environment.
 3. When there is no error text, because the panel is clean and the flow run is green, read
    the "Nothing errors" section first. Most wrong behavior in this stack fails silently.
-4. Apply the listed fix completely. Deliver the full corrected formula or command, not a
+4. When the complaint is "slow", measure before changing anything. The reference's Live
+   monitor section counts the requests per scenario, and the same count after the fix
+   proves it.
+5. Apply the listed fix completely. Deliver the full corrected formula or command, not a
    fragment.
-5. If the root cause was a missing rule, add the gotcha to the owning skill's reference the
+6. If the root cause was a missing rule, add the gotcha to the owning skill's reference the
    same session. The index is only valuable while it reflects reality.
 
 ## References in this skill
 
 - `references/troubleshooting.md`: the silent failure index, the full error to cause to fix
-  index, and the isolation method for anything not yet listed.
+  index, measuring request counts with Live monitor, and the isolation method for anything
+  not yet listed.
