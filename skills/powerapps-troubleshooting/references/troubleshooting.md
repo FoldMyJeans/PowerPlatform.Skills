@@ -138,24 +138,24 @@ Reading the grid from a browser tool takes care, because the event grid is AG Gr
 ```
 // run in the Live monitor tab
 const vp = document.querySelector('.ag-body-viewport');
+const total = +document.body.innerText.match(/Items: (\d+)/)[1];  // status bar count
 const rows = {};
-let last = -1;
-while (vp.scrollTop !== last) {
-  last = vp.scrollTop;
-  document.querySelectorAll('[role=row][row-index]').forEach(r => {
-    const cells = {};
-    r.querySelectorAll('[role=gridcell]').forEach(c => cells[c.getAttribute('col-id')] = c.innerText);
-    const i = r.getAttribute('row-index');
-    rows[i] = Object.assign(rows[i] || {}, cells);
-  });
-  vp.scrollTop += vp.clientHeight;
-  await new Promise(done => setTimeout(done, 500));
-}
-Object.values(rows).filter(c => c.category === 'Network'
-  && !Object.values(c).join(' ').includes('getRowsCount')).length
+const grab = () => document.querySelectorAll('.ag-center-cols-container [role=row]').forEach(r => {
+  const c = {};
+  r.querySelectorAll('[role=gridcell]').forEach(g => c[g.getAttribute('col-id')] = g.innerText.trim());
+  if (c.rowNumber && c.time) rows[c.rowNumber] = c;  // a row still loading has empty cells: skip it
+});
+// visit every missing row until all are read; one scroll pass misses rows that are still loading
+for (let pass = 0; pass < 6 && Object.keys(rows).length < total; pass++)
+  for (let i = 1; i <= total; i++) if (!rows[i]) {
+    vp.scrollTop = Math.max(0, (i - 3) * 32);  // 32 px rows
+    await new Promise(done => setTimeout(done, 500));
+    grab();
+  }
+Object.values(rows).filter(c => c.category === 'Network' && c.name !== 'getRowsCount').length
 ```
 
-Check the `col-id` names against one row of output before trusting the count, they are the grid's, not yours. Two browser tool traps: the grid only fills while the monitor tab is in front, and clicks only reach the app while the app's tab is in front. If the tool blocks the "Play published app" new tab, use Copy Live monitor link and open that URL in a second tab yourself.
+The `col-id` values, read from the live grid in November 2026: `rowNumber` (the Id column), `time`, `category`, `name` (the operation, such as `getRows`), `result`, `Data source`, `Control`, `Property`, `Duration (ms)` and `Response size`. Group by `Control` and `Property` to see which formulas send the requests. If a name has changed, check it against one row before trusting the count. Two browser tool traps: the grid only fills while the monitor tab is in front, and clicks only reach the app while the app's tab is in front. If the tool blocks the "Play published app" new tab, use Copy Live monitor link and open that URL in a second tab yourself.
 
 ## When something is not listed
 
