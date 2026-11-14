@@ -6,9 +6,10 @@ description: >-
   UI patterns (clickable stepper, evidence gates, shared route aware panels, concurrency safe
   step moves, notification debounce, approval galleries, dashboards, guided intake). Use
   whenever the user adds a screen or panel or container, structures OnStart or OnVisible,
-  names controls and variables, or builds a stepper, gate, dashboard, or gallery. Trigger on
-  "add a screen", "add a panel", "app structure", "OnStart", "stepper", "dashboard in the
-  app", "gallery", "navigation in the app". Assumes SharePoint backed canvas apps on standard
+  names controls and variables, builds a stepper, gate, dashboard, or gallery, or the app is
+  slow because hidden views keep querying. Trigger on "add a screen", "add a panel", "app
+  structure", "OnStart", "stepper", "dashboard in the app", "gallery", "navigation in the
+  app", "the app is slow", "hidden container still loads", "auto refresh timer". Assumes SharePoint backed canvas apps on standard
   Microsoft 365 licensing, no Dataverse.
 ---
 
@@ -40,13 +41,16 @@ Use this when structuring the app or building UI. For the raw formula rules use
   variable as the source of truth for shared state.
 - Visibility is not authority. A hidden button is UX. Real access control is the two layer
   model in `powerapps-approvals-and-flows`.
+- Hidden is not idle. A hidden view's formulas still query SharePoint. Gate data bound
+  properties on the view's container `Visible`, and keep ungated anything another control
+  reads as a gate where blank means "allowed".
 - Follow the naming conventions in the architecture reference exactly. Consistent names are
   what make source diffs and pull requests reviewable.
 
 ## References in this skill
 
-- `references/app-architecture.md`: why one screen, the container tree, view state,
-  App.OnStart sections, deep links, OnVisible as the data sync point, theme, naming, and on
+- `references/app-architecture.md`: why one screen, the container tree, view state, gating
+  hidden views and refresh timers so they stop querying, App.OnStart sections, deep links, OnVisible as the data sync point, theme, naming, and on
   screen copy rules.
 - `references/ui-patterns.md`: the pattern library with formulas, stepper, gates, shared
   panels, concurrency safe moves, debounce and auto grey, approval gallery, dashboards,

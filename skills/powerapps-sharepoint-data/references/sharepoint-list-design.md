@@ -181,6 +181,27 @@ What that means in practice:
 - When a query mixes delegable and non delegable tests, nest them. The inner `Filter` holds only delegable tests and runs on the server, the outer one runs locally over that already small result: `Filter(Filter(Deal_Files, Deal.Value = varDeal.Deal_Reference), EndsWith(File_Name, ".pdf"))`. A Lookup column compared on `.Value` delegated on a real build, so the inner filter reaches every row however long the list grows. The outer tests then only ever see one record's rows.
 - When a person filter genuinely has to run server side, mirror the column. Add a plain single line text column and write the person's email into it in the same patch that writes the person column, already lowercased. The filter is then `Filter(Deals, Owner_Email = varUserEmailLower)`, delegable, a bare column compared with `=`. Wrapping the column in `Lower()` inside the Filter breaks delegation again and puts you back where you started, which is the whole reason the lowercasing happens on write and not on read. Backfill the mirror on existing rows or they silently drop out of every filtered view.
 
+## Request count: read a list once, not once per row
+
+Delegation decides whether an answer is right. The number of requests decides whether the app feels slow. A `LookUp` or `Filter` against a list inside a per row formula (gallery `Items` through `AddColumns`, a `ForAll`, a gallery row's label) sends one query per row, and sends them all again whenever the formula re-runs. Read the small list once in a `With` and look up in that local table:
+
+```
+// WRONG: one Role_Config query per approval row
+Items: =AddColumns(
+    Filter(Approvals, Deal.Id = varDeal.ID && Review_Cycle = varDeal.Review_Cycle),
+    Role_Holder, LookUp(Role_Config, Role_Name.Value = Approver_Role.Value).Assigned_To.DisplayName)
+
+// RIGHT: one Role_Config query, the per row lookups run in memory
+Items: =With({ roles: Role_Config },
+    AddColumns(
+        Filter(Approvals, Deal.Id = varDeal.ID && Review_Cycle = varDeal.Review_Cycle),
+        Role_Holder, LookUp(roles, Role_Name.Value = Approver_Role.Value).Assigned_To.DisplayName))
+```
+
+On a production app a review gallery ran one record list query per review row, once each for its scope check, its search, its sort and a display column. The same gallery reading the list once per evaluation sends one. The `With` copy is a non delegable read, capped at the data row limit, so this is for the small lists (roles, a few per record approvals) or for a list already narrowed by a delegable filter inside the `With`. Where the per row query can only be avoided by a filter that does not delegate, see Delegation reality above before trading a slow count for a wrong one.
+
+Hidden views and repeating `Refresh` timers multiply every per row query. Gating them is in the `powerapps-architecture-and-ui` skill.
+
 ## Building the lists
 
 Two workable ways, pick per project:

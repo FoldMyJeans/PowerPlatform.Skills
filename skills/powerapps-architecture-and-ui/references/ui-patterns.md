@@ -173,6 +173,8 @@ If(!IsBlank(varDeal), Set(varDeal, LookUp(Deals, ID = varDeal.ID)))
 
 The re-lookup of the open record stops an open detail view from going stale after the refresh. For `Refresh()` to surface new rows, the gallery `Items` must bind to the data source itself (with inline filters), not to a collection snapshot.
 
+A dashboard is a container on the one screen, so its tiles and gallery keep querying SharePoint while the user is on another view. Gate them on the dashboard container's `Visible`, as in Hidden views still query SharePoint in `references/app-architecture.md`.
+
 ## Pattern: guided intake plus directory
 
 Two doors into the same routes. A guided questionnaire (two or three plain language questions) that ends at a verdict screen naming the route, the approvers, and what to prepare, with a Start button. And a directory screen listing every route with full names for people who already know. Both set the same `varView`. Dead ends (exempt outcomes) are information screens with Back and Home, they save no row.

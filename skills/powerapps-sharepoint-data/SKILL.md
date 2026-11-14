@@ -5,9 +5,10 @@ description: >-
   (records, file index, roles, approvals), naming rules, column types and how Power Fx reads
   them, delegation limits, and the SCHEMA_AS_BUILT contract doc. Use whenever the user is
   designing or changing lists or columns for an app, choosing a column type, dealing with a
-  Choice column, hitting a delegation warning, or documenting the real schema. Trigger on
-  "design my SharePoint lists", "what columns do I need", "add a column", "choice column
-  values", "lookup or text column", "delegation warning", "the schema doc". Assumes
+  Choice column, hitting a delegation warning, cutting per row queries, or documenting the
+  real schema. Trigger on "design my SharePoint lists", "what columns do I need", "add a
+  column", "choice column values", "lookup or text column", "delegation warning", "LookUp
+  in a gallery is slow", "the schema doc". Assumes
   SharePoint backed canvas apps on standard Microsoft 365 licensing, no Dataverse.
 ---
 
@@ -47,4 +48,5 @@ exact specs) use `powerapps-build-playbook`. For approval and permission data sh
 ## References in this skill
 
 - `references/sharepoint-list-design.md`: the four list shape, naming rules, column types in
-  Power Fx, each list in detail, SCHEMA_AS_BUILT.md, delegation reality, and build specs.
+  Power Fx, each list in detail, SCHEMA_AS_BUILT.md, delegation reality, request count (one
+  read per list, not one per row), and build specs.
